@@ -3,11 +3,10 @@ from urllib.parse import urlparse
 import asyncio
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
 from crawl4ai.content_filter_strategy import PruningContentFilter
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 import re
-import inspect
-print(inspect.signature(PruningContentFilter.__init__))
 import json
+from bs4 import BeautifulSoup
+from markdownify import markdownify as md
 
 class ParserBase(ABC):
 
@@ -24,12 +23,15 @@ class ParserBase(ABC):
         """
         pass
 
-    @abstractmethod
-    def set_config(self):
+    def set_config(self) -> CrawlerRunConfig:
         """
-        metodo per configurare il CrawlerRunConfig con filtri specifici
-        in base al tipo di parser
+        Attualmente conviene configurare il crawler con i valori di default
+        in modo da poter ottenere l'html grezzo intero della pagina
         """
+        config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+        )   
+        return config
 
     def set_browser(self) -> BrowserConfig:
         """
@@ -37,10 +39,10 @@ class ParserBase(ABC):
         Possiamo sovrascriverlo in modo più specifico all'occorrenza
         """
         return BrowserConfig(
-            # 1. Headless: True per i server, False se vuoi vedere cosa succede (debug)
+            # Headless: True per i server, False se si vuole vedere cosa succede
             headless=True,
         
-            # 2. Browser Type: Chromium è il più stabile per il parsing
+            # lasciamo il valore di default
             browser_type="chromium",
     )
 
@@ -52,17 +54,51 @@ class ParserBase(ABC):
         """
         pass
 
+
+#Paser per Wikipedia
 class ParserWikipedia(ParserBase):
     async def get_data(self) -> dict:
         async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            # Eseguiamo il crawl
+            # 1. Eseguiamo il crawl e prendiamo l'html grezzo
             result = await crawler.arun(url=self.url, config=self.crawl_config)
             
             if not result.success:
                 return {"error": "Failed to crawl"}
 
-            # Puliamo il testo usando il metodo della classe base
-            cleaned_text = self.clean_markdown(result.markdown.raw_markdown)
+            # 2. utilizziamo Beautifulsosup per: 
+            # - Parsare l'html grezzo 
+            # - Eliminare elementi strutturali di disturbo
+
+            """
+            La tattica è cercare la classe 'mw-parser-output' che contiene tutto il
+            testo informativo della pagina (tranne il titolo) con degli elementi di disturbo.
+            Visto però che a volte questa classe è presente più volte nel testo html, usiamo prima 
+            l'id del corpo testuale e poi cerchiamo al suo interno la classe
+            """
+
+            soup = BeautifulSoup(result.html, 'html.parser')
+        
+            # Invece di cercare subito la classe, cerchiamo l'ID unico del corpo testuale
+            container = soup.find(id="mw-content-text")
+
+            if container:
+                # Cerchiamo il div mw-parser-output che è FIGLIO di mw-content-text
+                corpo_centrale = container.find('div', class_='mw-parser-output', recursive=False)
+    
+                # Se recursive=False non lo trova (a seconda della versione di Wiki), usa:
+                if not corpo_centrale:
+                    corpo_centrale = container.find('div', class_='mw-parser-output')
+
+                if corpo_centrale:
+                    # Rimuoviamo gli elementi di disturbo
+                    for element in corpo_centrale.select('.hatnote, .ambox, .infobox, .mw-indicators, .metadata, table, sup, figure, .mw-empty-elt'):
+                        element.decompose()
+        
+                    # Estraiamo il testo convertendolo in markdown
+                    testo_estratto = md(str(corpo_centrale))
+        
+                    # Pulizia finale con le Regex
+                    cleaned_text = self.clean_markdown(testo_estratto)
 
             # Restituiamo esattamente la struttura richiesta dall'esonero
             return {
@@ -105,26 +141,9 @@ class ParserWikipedia(ParserBase):
     
         return text.strip()
 
-    def set_config(self) -> CrawlerRunConfig:
-
-        config = CrawlerRunConfig(
-            cache_mode=CacheMode.BYPASS,
-            css_selector="div.mw-parser-output",
-    
-            # NOTA: Qui usiamo una stringa, non una lista!
-            excluded_selector=".hatnote, .ambox, .infobox, .mw-indicators, .metadata, .topicon, .noprint",
-    
-            # excluded_tags invece di solito accetta una lista, 
-            # ma se vuoi andare sul sicuro, controlla se l'errore persiste
-            excluded_tags=['table', 'style', 'script', 'nav', 'sup', 'figure'],
-    
-            word_count_threshold=25
-        )   
-
-        return config
-
+#main per testare da terminale senza API
 async def main():
-    target_url = "https://it.wikipedia.org/wiki/Leonardo_Da_Vinci"
+    target_url = "https://it.wikipedia.org/wiki/Firenze"
     print(f"--- Avvio parsing di: {target_url} ---")
     
     parser = ParserWikipedia(target_url)
