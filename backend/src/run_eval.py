@@ -3,8 +3,8 @@ import asyncio
 import os
 import time
 
-# Importiamo il parser dal file server.py 
-from server import ParserWikipedia
+# Importiamo il parser dalla directory utilities
+from utilities.parserWikipedia import ParserWikipedia
 # Importiamo la funzione di valutazione finale
 from utilities.evaluation import evaluate_all
 
