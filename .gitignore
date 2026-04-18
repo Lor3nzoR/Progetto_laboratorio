@@ -1,1 +1,6 @@
+#file specifici
 test_wikipedia.json
+
+#cartelle
+__pycache__/
+backend/data/
