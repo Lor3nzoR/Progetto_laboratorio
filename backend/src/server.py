@@ -11,7 +11,7 @@ from utilities.parserWikipedia import ParserWikipedia
 
 #main per testare da terminale senza API
 async def main():
-    target_url = "https://it.wikipedia.org/wiki/Firenze"
+    target_url = "https://it.wikipedia.org/wiki/BabelNet"
     print(f"--- Avvio parsing di: {target_url} ---")
     
     parser = ParserWikipedia(target_url)
@@ -29,7 +29,13 @@ async def main():
         with open("test_wikipedia.json", "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         print("\n💾 Risultato completo salvato in 'test_wikipedia.json'")
-        
+
+        #salviamo anche solamente l'md in modo che sia più leggibile
+        markdown_content = data.get("parsed_text", "")
+        with open("parsed_text.md", "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+        print("\n💾 markdown salvato in ''parsed_text.md'")        
 
 if __name__ == "__main__":
     asyncio.run(main())

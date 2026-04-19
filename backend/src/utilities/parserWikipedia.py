@@ -1,9 +1,9 @@
-import os
 from pathlib import Path
-import asyncio
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from .parserBase import ParserBase
 import re
+from .md_cleaning import clean_markdown_by_sections
 
 class ParserWikipedia(ParserBase):
     async def get_data(self) -> dict:
@@ -21,7 +21,7 @@ class ParserWikipedia(ParserBase):
                 return {"error": "Failed to crawl"}
 
             # Puliamo il testo usando il metodo della classe base
-            cleaned_text = self.clean_markdown(result.markdown.raw_markdown)
+            cleaned_text = self.clean_markdown(result.markdown.raw_markdown) #result.markdown.raw_markdown 
 
             #recuriamo il contenuto del raw html per restituirlo in output
             html_grezzo = Path(file_path).read_text(encoding="utf-8")
@@ -36,6 +36,15 @@ class ParserWikipedia(ParserBase):
             }
     
     def set_crawler(self):
+        # Creiamo il generatore di Markdown con le opzioni desiderate
+        md_generator = DefaultMarkdownGenerator(
+            options={
+                "ignore_links": True,   # Rimuove i link mantenendo il testo
+                "ignore_images": True,  # Rimuove le immagini
+                "body_width": 0         # Impedisce l'andata a capo automatica forzata
+            }
+        )
+
         config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             css_selector="div.mw-parser-output",
@@ -45,9 +54,11 @@ class ParserWikipedia(ParserBase):
     
             # excluded_tags invece di solito accetta una lista, 
             # ma se vuoi andare sul sicuro, controlla se l'errore persiste
-            excluded_tags=['table', 'style', 'script', 'nav', 'sup', 'figure'],
+            excluded_tags=['table', 'style', 'script', 'nav', 'figure'],
+
+            word_count_threshold= 0, #altrimenti potrebbe essere invalidante
     
-            word_count_threshold=25
+            markdown_generator= md_generator
         )   
 
         return config
@@ -59,8 +70,13 @@ class ParserWikipedia(ParserBase):
         """
         if not text:
             return ""
+        
+        # FILTRO SEZIONI
+        #rimuoviamo sezioni indesiderrate
+        noise_sections = ["note", "bibliografia", "voci correlate", "altri progetti", "collegamenti esterni", "premi"]
+        text = clean_markdown_by_sections(text, noise_sections)
 
-        # 1. FILTRO RIGHE (Noise Reduction)
+        # FILTRO RIGHE
         # Definiamo frasi tipiche dei metadati/avvisi di Wikipedia
         noise_indicators = {
             "pagina è semiprotetta", 

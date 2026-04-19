@@ -1,5 +1,6 @@
 #file specifici
 test_wikipedia.json
+parsed_text.md
 
 #cartelle
 __pycache__/
