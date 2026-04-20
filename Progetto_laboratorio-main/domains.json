@@ -1,0 +1,50 @@
+<<<<<<< HEAD
+{
+  "domini_assegnati": [
+    {
+      "nome": "Wikipedia Italia",
+      "domain": "it.wikipedia.org",
+      "url": "https://it.wikipedia.org"
+    },
+    {
+      "nome": "Limesonline",
+      "domain": "limesonline.com",
+      "url": "https://www.limesonline.com"
+    },
+    {
+      "nome": "Yahoo",
+      "domain": "yahoo.com",
+      "url": "https://it.yahoo.com"
+    },
+    {
+      "nome": "WHO (Organizzazione Mondiale della Sanità)",
+      "domain": "who.int",
+      "url": "https://www.who.int"
+    }
+  ]
+=======
+{
+  "domini_assegnati": [
+    {
+      "nome": "Wikipedia Italia",
+      "domain": "it.wikipedia.org",
+      "url": "https://it.wikipedia.org"
+    },
+    {
+      "nome": "Limesonline",
+      "domain": "limesonline.com",
+      "url": "https://www.limesonline.com"
+    },
+    {
+      "nome": "Yahoo",
+      "domain": "yahoo.com",
+      "url": "https://it.yahoo.com"
+    },
+    {
+      "nome": "WHO (Organizzazione Mondiale della Sanità)",
+      "domain": "who.int",
+      "url": "https://www.who.int"
+    }
+  ]
+>>>>>>> a6cf71b (Commit iniziale)
+}
