@@ -11,7 +11,7 @@ from utilities.parserWikipedia import ParserWikipedia
 
 #main per testare da terminale senza API
 async def main():
-    target_url = "https://it.wikipedia.org/wiki/BabelNet"
+    target_url = "https://it.wikipedia.org/wiki/Equazione_di_Schr%C3%B6dinger"
     print(f"--- Avvio parsing di: {target_url} ---")
     
     parser = ParserWikipedia(target_url)

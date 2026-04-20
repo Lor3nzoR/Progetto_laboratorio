@@ -40,3 +40,49 @@ def clean_markdown_by_sections(raw_markdown, sections_to_remove):
     
     # 5. Uniamo tutto con doppi a capo per una formattazione Markdown corretta
     return "\n\n".join(clean_parts)
+
+def clean_markdown_noise(raw_markdown, noise_indicators):
+    """
+    Rimuove righe di rumore, avvisi e righe vuote da un testo Markdown.
+    
+    Args:
+        raw_markdown (str): Il contenuto Markdown grezzo.
+        noise_indicators (list): Lista di stringhe che identificano righe da scartare.
+        
+    Returns:
+        str: Il Markdown pulito e ricostruito.
+    """
+    # 1. Suddividiamo il testo in righe
+    lines = raw_markdown.split('\n')
+    cleaned_lines = []
+
+    # Trasformiamo gli indicatori in minuscolo per un confronto più sicuro
+    noise_list = [str(ind).lower() for ind in noise_indicators]
+
+    for line in lines:
+        l_strip = line.strip()
+        
+        # A. Salta le righe vuote
+        if not l_strip:
+            continue
+            
+        # B. Salta se la riga contiene uno degli indicatori (confronto minuscolo)
+        # Questo cattura "Modifica wikitesto" anche se l'indicatore è "modifica"
+        if any(indicator in l_strip.lower() for indicator in noise_list):
+            continue
+            
+        # Se la riga ha superato tutti i filtri, la teniamo
+        cleaned_lines.append(line)
+
+    # 2. Ricongiungiamo le righe con un singolo a capo
+    return '\n'.join(cleaned_lines)
+
+def clean_markdown_regex(raw_markdown, regex):
+    """
+    Pulisce il markdown con regole definite in regex
+    """
+    text = raw_markdown
+    for pattern, replacement in regex:
+        text = re.sub(pattern, replacement, text)
+
+    return text.strip()

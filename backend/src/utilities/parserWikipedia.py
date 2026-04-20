@@ -1,39 +1,10 @@
 from pathlib import Path
-from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode
+from crawl4ai import CrawlerRunConfig, CacheMode
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from .parserBase import ParserBase
-import re
-from .md_cleaning import clean_markdown_by_sections
+from .md_cleaning import clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
 
 class ParserWikipedia(ParserBase):
-    async def get_data(self) -> dict:
-
-        #come primo step recuperiamo il percorso del raw_html
-        file_path = await self.get_raw_html()
-        #lo convertiamo nell'uri da passare al crawler
-        local_html = f"file://{file_path}"
-
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            # 1. Eseguiamo il crawl e prendiamo l'html grezzo
-            result = await crawler.arun(url=local_html, config=self.crawl_config)
-            
-            if not result.success:
-                return {"error": "Failed to crawl"}
-
-            # Puliamo il testo usando il metodo della classe base
-            cleaned_text = self.clean_markdown(result.markdown.raw_markdown) #result.markdown.raw_markdown 
-
-            #recuriamo il contenuto del raw html per restituirlo in output
-            html_grezzo = Path(file_path).read_text(encoding="utf-8")
-
-            # Restituiamo esattamente la struttura richiesta dall'esonero
-            return {
-                "url": self.url,
-                "domain": self.domain,
-                "title": result.metadata.get('title', ''),
-                "html_text": html_grezzo,           # HTML grezzo
-                "parsed_text": cleaned_text         # Markdown pulito
-            }
     
     def set_crawler(self):
         # Creiamo il generatore di Markdown con le opzioni desiderate
@@ -78,29 +49,10 @@ class ParserWikipedia(ParserBase):
 
         # FILTRO RIGHE
         # Definiamo frasi tipiche dei metadati/avvisi di Wikipedia
-        noise_indicators = {
-            "pagina è semiprotetta", 
-            "voce in vetrina", 
-            "Questa voce è stata selezionata",
-            "modifica wikitesto"
-        }
-    
-        lines = text.split('\n')
-        cleaned_lines = []
-    
-        for line in lines:
-            l_strip = line.strip()
-            # Salta righe vuote o indicatori di rumore
-            if not l_strip or any(indicator in l_strip for indicator in noise_indicators):
-                continue
-            # Salta righe che sono puramente immagini Markdown
-            if l_strip.startswith("![") or l_strip == "![]":
-                continue
-            cleaned_lines.append(line)
+        noise_indicators = ["pagina è semiprotetta", "voce in vetrina", "Questa voce è stata selezionata", "modifica wikitesto"]
+        text = clean_markdown_noise(text, noise_indicators)
 
-        text = '\n'.join(cleaned_lines)
-
-        # 2. PULIZIA REGEX (Ordinata per priorità)
+        # PULIZIA REGEX (Ordinata per priorità)
         substitution_rules = [
             # Rimozione Immagini: ![alt](url)
             (r'!\[.*?\]\(.*?\)', ''),
@@ -116,16 +68,14 @@ class ParserWikipedia(ParserBase):
         
             # Rimozione di spazi multipli orizzontali (ma non i newline)
             (r'[ \t]{2,}', ' '),
+
+            # display di formule nel modo corretto
+            (r'[^ \n\r\t][^\n{]{0,50}?\{\\displaystyle\s*(.*?)\s*\}', r'$\1$'),
+
+            # Collassa 3 o più newline in massimo 2 (mantiene i paragrafi ma toglie il vuoto)
+            (r'\n{3,}', '\n\n')
         ]
 
-        for pattern, replacement in substitution_rules:
-            text = re.sub(pattern, replacement, text)
+        text = clean_markdown_regex(text, substitution_rules)
 
-        # 3. NORMALIZZAZIONE SPAZIATURA (Final Polish)
-        # Rimuove spazi bianchi all'inizio/fine di ogni riga
-        text = "\n".join(line.strip() for line in text.split('\n'))
-    
-        # Collassa 3 o più newline in massimo 2 (mantiene i paragrafi ma toglie il vuoto)
-        text = re.sub(r'\n{3,}', '\n\n', text)
-
-        return text.strip()
+        return text
