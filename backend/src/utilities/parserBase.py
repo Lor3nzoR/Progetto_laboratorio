@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from abc import ABC, abstractmethod
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
@@ -12,12 +11,38 @@ class ParserBase(ABC):
         self.crawl_config = self.set_crawler() #configurazione del crawler
         self.browser_config = self.set_browser() #configurazione del browser
 
-    @abstractmethod
     async def get_data(self) -> dict:
         """
-        metodo per restituire in output i dati parsati nel formato richiesto
+        Questo è lo schema base per l'estrazione dei dati da una pagina web
+        e relativo output strutturato, può variare in base all'implementazione specifica
+        delle funzioni di configurazione del crawler e pulizia del markdown
         """
-        pass
+        #come primo step recuperiamo il percorso del raw_html
+        file_path = await self.get_raw_html()
+        #lo convertiamo nell'uri da passare al crawler
+        local_html = f"file://{file_path}"
+
+        async with AsyncWebCrawler(config=self.browser_config) as crawler:
+            # Eseguiamo il crawler e filtriamo l'html grezzo
+            result = await crawler.arun(url=local_html, config=self.crawl_config)
+            
+            if not result.success:
+                return {"error": "Failed to crawl"}
+
+            # Puliamo il testo usando la funzione di pulizia per il markdown
+            cleaned_text = self.clean_markdown(result.markdown.raw_markdown) 
+
+            # Recuriamo il contenuto del raw html per restituirlo in output
+            html_grezzo = Path(file_path).read_text(encoding="utf-8")
+
+            # Restituiamo esattamente la struttura richiesta dall'esonero
+            return {
+                "url": self.url,
+                "domain": self.domain,
+                "title": result.metadata.get('title', ''),
+                "html_text": html_grezzo,           # HTML grezzo
+                "parsed_text": cleaned_text         # Markdown pulito
+            }
 
     async def get_raw_html(self) -> str:
         """
