@@ -7,22 +7,26 @@ ENV PYTHONUNBUFFERED=1
 # Directory di lavoro comune del container.
 WORKDIR /project
 
-# Installiamo solo i pacchetti di sistema strettamente necessari.
+
+# Dipendenze di sistema minime; Playwright installa poi Chromium e le sue librerie.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiamo prima i requirements per sfruttare la cache Docker.
+# Copia prima i requirements per sfruttare la cache di Docker.
 COPY backend/requirements.txt /project/backend/requirements.txt
 RUN pip install --no-cache-dir -r /project/backend/requirements.txt
 
-# Copiamo nel container solo i file realmente necessari al backend.
+# Crawl4AI usa Playwright: il browser deve essere disponibile nel container.
+RUN python -m playwright install --with-deps chromium
+
+# Copia nel container solo i file necessari al backend.
 COPY domains.json /project/domains.json
 COPY gs_data /project/gs_data
 COPY backend/src /project/backend/src
 
-# Porta HTTP esposta dal backend FastAPI.
-EXPOSE 8000
+# Porta HTTP richiesta per il backend.
+EXPOSE 8003
 
-# Avvio esplicito di Uvicorn con `--app-dir` per evitare ambiguita' sul path.
-CMD ["uvicorn", "src.server:app", "--app-dir", "/project/backend", "--host", "0.0.0.0", "--port", "8000"]# da implementare
+# Avvio del server FastAPI.
+CMD ["uvicorn", "server:app", "--app-dir", "/project/backend/src", "--host", "0.0.0.0", "--port", "8003"]
