@@ -1,5 +1,3 @@
-
-
 # Import standard: servono per leggere JSON, gestire percorsi e analizzare URL.
 import json
 from functools import lru_cache
@@ -18,7 +16,7 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
 # Import dei moduli gia' presenti nel progetto.
 from utilities.evaluation import evaluate_all
-from utilities.parserGeneric import ParserGeneric
+from utilities.parserBase import ParserBase
 from utilities.parserWikipedia import ParserWikipedia
 
 
@@ -174,7 +172,7 @@ def get_parser_class(domain: str):
         "it.wikipedia.org": ParserWikipedia
     }
 
-    return specific_parsers.get(domain, ParserGeneric)
+    return specific_parsers.get(domain, ParserBase)
 
 
 # Percorso del Gold Standard.
