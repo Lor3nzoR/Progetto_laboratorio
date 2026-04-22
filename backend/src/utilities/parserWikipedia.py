@@ -1,4 +1,3 @@
-from pathlib import Path
 from crawl4ai import CrawlerRunConfig, CacheMode
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from .parserBase import ParserBase

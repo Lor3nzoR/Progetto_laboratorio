@@ -1,12 +1,5 @@
-from abc import ABC, abstractmethod
-from urllib.parse import urlparse
 import asyncio
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
-from crawl4ai.content_filter_strategy import PruningContentFilter
-import re
 import json
-import os
-from pathlib import Path
 from utilities.parserWikipedia import ParserWikipedia
 
 #main per testare da terminale senza API
