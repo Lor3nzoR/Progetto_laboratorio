@@ -1,0 +1,293 @@
+<!-- ===== INIZIO CODICE SCRITTO DA CODEX ===== -->
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Parser UI</title>
+    <<!--<style>
+        :root {
+            --bg: #f4f1ea;
+            --panel: #fffdf8;
+            --line: #d7cfc0;
+            --ink: #1f2933;
+            --accent: #355c7d;
+            --accent-soft: #e7eef4;
+            --error: #8f2d2d;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            background: linear-gradient(180deg, #f4f1ea 0%, #ebe5d8 100%);
+            color: var(--ink);
+        }
+
+        .page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        .hero,
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            box-shadow: 0 12px 24px rgba(31, 41, 51, 0.08);
+        }
+
+        .hero {
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+        }
+
+        .subtitle {
+            margin: 8px 0 0;
+            line-height: 1.5;
+        }
+
+        .panel {
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-grid,
+        .results-grid,
+        .metrics-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-grid {
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            align-items: end;
+        }
+
+        .results-grid {
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+
+        .metrics-grid {
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select,
+        button,
+        textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            font-weight: 700;
+        }
+
+        .note,
+        .error-box,
+        .metric-card {
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .note {
+            background: var(--accent-soft);
+        }
+
+        .error-box {
+            background: #fdecec;
+            color: var(--error);
+            border: 1px solid #efb7b7;
+        }
+
+        .metric-card {
+            background: #f8f7f3;
+            border: 1px solid var(--line);
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+            max-height: 420px;
+            overflow: auto;
+            background: #faf7ef;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .muted {
+            color: #5f6b76;
+        }
+
+        @media (max-width: 720px) {
+            .page {
+                padding: 20px 14px 36px;
+            }
+        }
+    </style>-->>
+    <style>
+    .panel {
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+    textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font: inherit;
+        }
+    </style>
+
+</head>
+<body>
+    <main class="page">
+        <section class="hero">
+            <h1>UI</h1>
+            <p class="subtitle">
+                 Puoi inserire un URL manualmente
+                oppure selezionare rapidamente una pagina del Gold Standard.
+            </p>
+            <p class="muted">Backend configurato su: {{ backend_url }}</p>
+        </section>
+
+        <section class="panel">
+            <h2>Analisi pagina</h2>
+            <form action="/analyze" method="post">
+                <div class="form-grid">
+                    <div>
+                        <label for="url">URL manuale</label>
+                        <input
+                            id="url"
+                            name="url"
+                            type="url"
+                            value="{{ submitted_url }}"
+                        >
+                    </div>
+                    <div>
+                        <label for="selected_url">URL dal Gold Standard</label>
+                        <select id="selected_url" name="selected_url">
+                            <option value="">Seleziona un URL già presente nel GS</option>
+                            {% for entry in gs_entries %}
+                                <option value="{{ entry.url }}" {% if selected_url == entry.url %}selected{% endif %}>
+                                    {{ entry.title }} - {{ entry.url }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <button type="submit">Esegui parsing</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="note" style="margin-top: 16px;">
+                <strong>Domini assegnati:</strong>
+                {% if domains %}
+                    {{ domains | join(", ") }}
+                {% else %}
+                    nessun dominio disponibile.
+                {% endif %}
+                {% if domains_error %}
+                    <div class="muted" style="margin-top: 8px;">{{ domains_error }}</div>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if error_message %}
+            <section class="error-box">
+                <strong>Errore:</strong> {{ error_message }}
+            </section>
+        {% endif %}
+
+        {% if parse_result %}
+            <section class="panel">
+                <h2>Risultato parsing</h2>
+                <p><strong>Titolo:</strong> {{ parse_result.title }}</p>
+                <p><strong>Dominio:</strong> {{ parse_result.domain }}</p>
+                <p><strong>URL:</strong> {{ parse_result.url }}</p>
+
+                <div class="results-grid">
+                    <div>
+                        <h3>HTML grezzo</h3>
+                        <pre>{{ parse_result.html_text }}</pre>
+                    </div>
+                    <div>
+                        <h3>Parsed text</h3>
+                        <pre>{{ parse_result.parsed_text }}</pre>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        {% if gold_standard %}
+            <section class="panel">
+                <h2>Confronto con Gold Standard</h2>
+                <div class="results-grid">
+                    <div>
+                        <h3>Gold text</h3>
+                        <pre>{{ gold_standard.gold_text }}</pre>
+                    </div>
+                    <div>
+                        <h3>Informazioni GS</h3>
+                        <p><strong>Titolo:</strong> {{ gold_standard.title }}</p>
+                        <p><strong>Dominio:</strong> {{ gold_standard.domain }}</p>
+                        <p><strong>URL:</strong> {{ gold_standard.url }}</p>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        {% if evaluation %}
+            <section class="panel">
+                <h2>Metriche di valutazione</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Token Level Precision</h3>
+                        <p>{{ evaluation.token_level_eval.precision }}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Token Level Recall</h3>
+                        <p>{{ evaluation.token_level_eval.recall }}</p>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Token Level F1</h3>
+                        <p>{{ evaluation.token_level_eval.f1 }}</p>
+                    </div>
+                    {% for metric_name, metric_value in evaluation.x_eval.items() %}
+                        <div class="metric-card">
+                            <h3>{{ metric_name }}</h3>
+                            <p>{{ metric_value }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </main>
+</body>
+</html>
+<!-- ===== FINE CODICE SCRITTO DA CODEX ===== -->
