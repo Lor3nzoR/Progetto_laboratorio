@@ -1,6 +1,7 @@
 import re
+from typing import Iterable
 
-def clean_markdown_by_sections(raw_markdown, sections_to_remove):
+def clean_markdown_by_sections(raw_markdown: str, sections_to_remove: Iterable[str]) -> str:
     """
     Prende un markdown sporco, rimuove le sezioni indesiderate (blacklist)
     e restituisce un markdown pulito e ricostruito.
@@ -41,7 +42,7 @@ def clean_markdown_by_sections(raw_markdown, sections_to_remove):
     # 5. Uniamo tutto con doppi a capo per una formattazione Markdown corretta
     return "\n\n".join(clean_parts)
 
-def clean_markdown_noise(raw_markdown, noise_indicators):
+def clean_markdown_noise(raw_markdown: str, noise_indicators: Iterable[str]) -> str:
     """
     Rimuove righe di rumore, avvisi e righe vuote da un testo Markdown.
     
@@ -57,7 +58,7 @@ def clean_markdown_noise(raw_markdown, noise_indicators):
     cleaned_lines = []
 
     # Trasformiamo gli indicatori in minuscolo per un confronto più sicuro
-    noise_list = [str(ind).lower() for ind in noise_indicators]
+    noise_list = [str(ind).strip().lower() for ind in noise_indicators]
 
     for line in lines:
         l_strip = line.strip()
@@ -77,12 +78,12 @@ def clean_markdown_noise(raw_markdown, noise_indicators):
     # 2. Ricongiungiamo le righe con un singolo a capo
     return '\n'.join(cleaned_lines)
 
-def clean_markdown_regex(raw_markdown, regex):
+def clean_markdown_regex(raw_markdown: str, regex: Iterable[tuple[str, str]]) -> str:
     """
     Pulisce il markdown con regole definite in regex
     """
     text = raw_markdown
     for pattern, replacement in regex:
-        text = re.sub(pattern, replacement, text)
+        text = re.sub(pattern, replacement, text, flags=re.MULTILINE)
 
     return text.strip()

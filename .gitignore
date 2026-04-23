@@ -1,8 +1,9 @@
 #file specifici
-test_wikipedia.json
+test.json
 parsed_text.md
 temporanea_per_GS/testo_grezzo.txt
 temporanea_per_GS/testo_pronto.txt
+backend/src/main.py
 
 #cartelle
 __pycache__/
