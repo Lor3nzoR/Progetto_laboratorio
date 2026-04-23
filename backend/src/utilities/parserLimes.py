@@ -56,7 +56,7 @@ class ParserLimes(ParserBase):
         #Filtro regex
         substitution_rules =  [
             # rimuove separatori tipo * * * oppure *** 
-            #(r"^\s*(\*\s*){3,}\s*$", "\n"),
+            (r'^\s*(?:\*\s*)+$', ""),
 
             # collassa spazi multipli
             (r"[ \t]+", " "),

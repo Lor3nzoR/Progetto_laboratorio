@@ -94,7 +94,7 @@ async def run_evaluation_on_gs():
     # 1. Percorso assoluto al file GS
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(os.path.dirname(current_dir))
-    gs_file_path = os.path.join(project_root, "gs_data", "it_wikipedia_org_gs.json")
+    gs_file_path = os.path.join(project_root, "gs_data", "limesonline_gs.json")
 
     # 2. Caricamento JSON
     try:
