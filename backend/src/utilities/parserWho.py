@@ -2,11 +2,7 @@ from crawl4ai import CrawlerRunConfig, CacheMode
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
 from .parserBase import ParserBase
-from .md_cleaning import (
-    clean_markdown_by_sections,
-    clean_markdown_noise,
-    clean_markdown_regex,
-)
+from .md_cleaning import clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
 
 
 class WHOParser(ParserBase):
@@ -24,11 +20,7 @@ class WHOParser(ParserBase):
 
         return CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
-
-            # Il contenuto WHO è quasi sempre dentro main/article
             css_selector="main, article, [role='main']",
-
-            # Escludiamo il boilerplate più comune del template WHO
             excluded_selector="""
                 header, nav, footer, aside,
                 .sf-top-header, .sf-header, .sf-footer,
@@ -36,15 +28,11 @@ class WHOParser(ParserBase):
                 .breadcrumb, .breadcrumbs,
                 .social-share, .share, .language-selector,
                 .translation-links, .donate, .newsletter,
-                .related-links, .related, .promo, .banner,
-                .sf-list-vertical__item, .sf-publications-item,
-                .sf-multimedia-item, .slicknav_menu,
-                .alphabetical-nav, .navigation, .region-picker,
-                .sf-image-credit
+                .slicknav_menu, .alphabetical-nav, .navigation,
+                .region-picker, .sf-image-credit, .timestamp, .table-cell, .arrowed-link, 
+                div.sf-publications-item__date, .titile, .arrowed-links, .section-heading, a.link, .section-navigation, .sidebar
             """,
-
             excluded_tags=["style", "script", "nav", "footer", "aside", "form", "button", "svg"],
-
             word_count_threshold=0,
             markdown_generator=md_generator,
         )
@@ -53,97 +41,143 @@ class WHOParser(ParserBase):
         if not text:
             return ""
 
-        # Taglia sezioni che spesso nelle pagine WHO sono secondarie
-        noise_sections = [
-            "related",
-            "related links",
-            "more",
-            "multimedia",
-            "publications",
-            "documents",
-            "resources",
-            "databases",
-            "tools",
-            "news",
-            "initiatives and groups",
-            "feature stories",
-            "events",
-            "section navigation",
-        ]
-        text = clean_markdown_by_sections(text, noise_sections)
+        # solo marker molto sicuri
+        text = clean_markdown_by_sections(
+            text,
+            ["related", "related links"]
+        )
 
-        # Righe tipiche di boilerplate
-        noise_indicators = [
-            "skip to main content",
-            "select language",
-            "world health organization",
-            "home /",
-            "health topics",
-            "countries",
-            "newsroom",
-            "emergencies",
-            "about who",
-        ]
-        text = clean_markdown_noise(text, noise_indicators)
+        text = clean_markdown_noise(
+            text,
+            [
+                "skip to main content",
+                "select language",
+                "health topics",
+                "newsroom",
+                "emergencies",
+                "about who",
+                "download",
+                "read more",
 
-        substitution_rules = [
-            # immagini markdown
-            (r'!\[.*?\]\(.*?\)', ''),
+            ]
+        )
 
-            # link markdown -> solo testo
-            (r'\[([^\]]+)\]\(.*?\)', r'\1'),
-
-            # spazi multipli
-            (r'[ \t]{2,}', ' '),
-
-            # righe composte solo da separatori tipo ===
-            (r'^\s*[=\-]{3,}\s*$', '',),
-
-            # spazio prima della punteggiatura
-            (r'\s+([,.;:!?])', r'\1'),
-
-            # numeri ordinali spezzati: 7 th -> 7th
-            (r'(\d)\s+(st|nd|rd|th)\b', r'\1\2'),
-
-            # troppe righe vuote
-            (r'\n{3,}', '\n\n'),
-        ]
-
-        text = clean_markdown_regex(text, substitution_rules)
+        text = clean_markdown_regex(
+            text,
+            [
+                (r'!\[.*?\]\(.*?\)', ''),
+                (r'\[([^\]]+)\]\(.*?\)', r'\1'),
+                (r'[ \t]{2,}', ' '),
+                (r'^\s*[=\-]{3,}\s*$', ''),
+                (r'\s+([,.;:!?])', r'\1'),
+                (r'(\d)\s+(st|nd|rd|th)\b', r'\1\2'),
+                (r'\s*_\._\s*', '.'),
+                (r'\n{3,}', '\n\n'),
+            ]
+        ).strip()
 
         lines = [line.strip() for line in text.splitlines()]
 
-        cleaned_lines = []
-        seen = set()
+        # 1) rimuovi righe vuote multiple e boilerplate ovvio
+        blacklist_exact = {
+            "skip to main content",
+            "select language",
+            "world health organization",
+            "related",
+            "related links",
+            "more",
+            "learn more",
+        }
 
+        cleaned = []
+        seen = set()
         for line in lines:
             if not line:
-                cleaned_lines.append("")
+                if cleaned and cleaned[-1] != "":
+                    cleaned.append("")
                 continue
 
             low = line.lower()
-
-            # scarta righe troppo da navigazione
-            if low in {
-                "related",
-                "more",
-                "multimedia",
-                "publications",
-                "documents",
-                "resources",
-                "databases",
-                "tools",
-                "news",
-            }:
+            if low in blacklist_exact:
                 continue
 
             sig = " ".join(low.split())
             if sig in seen:
                 continue
             seen.add(sig)
-            cleaned_lines.append(line)
+            cleaned.append(line)
 
-        text = "\n".join(cleaned_lines)
-        text = clean_markdown_regex(text, [(r'\n{3,}', '\n\n')])
+        # 2) tieni titolo + primo blocco narrativo continuo
+        # tronca quando iniziano moduli secondari ricorrenti
+        stop_markers = {
+            "impact",
+            "who teams",
+            "related technical units",
+            "resolutions and decisions",
+            "other resources",
+            "conditions",
+            "diseases and conditions",
+            "health and wellbeing",
+            "substances",
+            "health interventions",
+            "human behaviour",
+            "departmental update",
+            "address",
+        }
 
-        return text.strip()
+        kept = []
+        started_body = False
+
+        for line in cleaned:
+            low = line.lower().strip()
+
+            if low in stop_markers:
+                break
+
+            if not started_body:
+                kept.append(line)
+                # appena entra vero testo, parte il body
+                if line and not line.startswith("#"):
+                    started_body = True
+                continue
+
+            kept.append(line)
+
+        # 3) riattacca continuazioni spezzate:
+        # se una riga successiva inizia minuscola o con connettivi,
+        # probabilmente è la continuazione del paragrafo precedente
+        merged = []
+        join_starters = (
+            "with ", "and ", "or ", "but ", "by ", "for ", "of ", "to ",
+            "in ", "on ", "from ", "through ", "including ", "which ",
+            "that ", "this ", "these ", "those ", "it ", "its "
+        )
+
+        for line in kept:
+            if not line:
+                if merged and merged[-1] != "":
+                    merged.append("")
+                continue
+
+            if merged:
+                prev = merged[-1]
+                if (
+                    prev
+                    and prev != ""
+                    and not prev.startswith("#")
+                    and (
+                        line[:1].islower()
+                        or any(line.lower().startswith(s) for s in join_starters)
+                    )
+                ):
+                    merged[-1] = prev.rstrip() + " " + line.lstrip()
+                    continue
+
+            merged.append(line)
+
+        # 4) se non c'è un titolo markdown esplicito, lascia la prima riga come titolo semplice
+        # niente # automatico: così resti più vicino ai GS che mi hai mostrato
+        text = "\n".join(merged)
+        text = clean_markdown_regex(text, [(r'\n{3,}', '\n\n')]).strip()
+
+        return text
