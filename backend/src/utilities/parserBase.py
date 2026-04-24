@@ -1,6 +1,7 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
+from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig, CacheMode
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from urllib.parse import urlparse
 
 class ParserBase(ABC):
@@ -17,32 +18,66 @@ class ParserBase(ABC):
         e relativo output strutturato, può variare in base all'implementazione specifica
         delle funzioni di configurazione del crawler e pulizia del markdown
         """
+        # MODIFICA: il recupero dell'HTML da URL resta qui, ma il parsing vero
+        # e proprio viene delegato a parse_html(), cosi' tutti i parser espongono
+        # la stessa interfaccia e il server non deve distinguere casi speciali.
         #come primo step recuperiamo il percorso del raw_html
         file_path = await self.get_raw_html()
-        #lo convertiamo nell'uri da passare al crawler
-        local_html = f"file://{file_path}"
+        html_grezzo = Path(file_path).read_text(encoding="utf-8")
+        return await self.parse_html(html_grezzo)
+
+    async def parse_html(self, html_text: str, title_override: str = "") -> dict:
+        """
+        MODIFICA: punto di ingresso comune per parsare una stringa HTML gia'
+        disponibile. Il server puo' riusare sempre questa API.
+        """
+        fallback_markdown_generator = DefaultMarkdownGenerator(
+            options={
+                "ignore_links": True,
+                "ignore_images": True,
+                "body_width": 0
+            }
+        )
+
+        fallback_config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            excluded_tags=["script", "style", "nav", "footer", "noscript"],
+            word_count_threshold=0,
+            markdown_generator=fallback_markdown_generator
+        )
 
         async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            # Eseguiamo il crawler e filtriamo l'html grezzo
-            result = await crawler.arun(url=local_html, config=self.crawl_config)
-            
+            result = await crawler.arun(
+                url=f"raw:{html_text}",
+                config=self.crawl_config
+            )
+
             if not result.success:
                 return {"error": "Failed to crawl"}
 
-            # Puliamo il testo usando la funzione di pulizia per il markdown
-            cleaned_text = self.clean_markdown(result.markdown.raw_markdown) 
+            raw_markdown = result.markdown.raw_markdown or ""
 
-            # Recuriamo il contenuto del raw html per restituirlo in output
-            html_grezzo = Path(file_path).read_text(encoding="utf-8")
+            # MODIFICA: fallback comune per tutti i parser che si basano su Crawl4AI.
+            if not raw_markdown.strip():
+                result = await crawler.arun(
+                    url=f"raw:{html_text}",
+                    config=fallback_config
+                )
 
-            # Restituiamo esattamente la struttura richiesta dall'esonero
-            return {
-                "url": self.url,
-                "domain": self.domain,
-                "title": result.metadata.get('title', ''),
-                "html_text": html_grezzo,           # HTML grezzo
-                "parsed_text": cleaned_text         # Markdown pulito
-            }
+                if not result.success:
+                    return {"error": "Failed to crawl"}
+
+                raw_markdown = result.markdown.raw_markdown or ""
+
+        cleaned_text = self.clean_markdown(raw_markdown)
+
+        return {
+            "url": self.url,
+            "domain": self.domain,
+            "title": title_override or result.metadata.get('title', ''),
+            "html_text": html_text,
+            "parsed_text": cleaned_text
+        }
 
     async def get_raw_html(self) -> str:
         """

@@ -1,3 +1,21 @@
+"""
+Server FastAPI del progetto.
+
+Questo file espone gli endpoint richiesti dalla consegna:
+- GET /parse
+- POST /parse
+- GET /domains
+- GET /gold_standard
+- GET /full_gold_standard
+- POST /evaluate
+- GET /full_gs_eval
+
+Tutto il codice aggiunto e' racchiuso nei marcatori richiesti, cosi' e'
+semplice distinguere questa implementazione dal codice precedente.
+"""
+
+# ===== INIZIO CODICE SCRITTO DA CODEX =====
+
 # Import standard: servono per leggere JSON, gestire percorsi e analizzare URL.
 import json
 from functools import lru_cache
@@ -10,14 +28,11 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-# Import Crawl4AI: usato qui solo per POST /parse e full_gs_eval da HTML diretto.
-from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
-from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
-
 # Import dei moduli gia' presenti nel progetto.
 from utilities.evaluation import evaluate_all
-from utilities.parserBase import ParserBase
+from utilities.parserGeneric import ParserGeneric
 from utilities.parserWikipedia import ParserWikipedia
+from utilities.parserWho import WHOParser
 
 
 # Percorsi base del progetto.
@@ -163,16 +178,24 @@ def normalize_url_and_domain(url: str) -> tuple[str, str]:
 
 
 # Selezione parser.
-# Wikipedia usa il parser specifico gia' presente; gli altri domini usano fallback.
+# MODIFICA: mappatura esplicita di tutti i 4 domini assegnati.
+# Nessun dominio viene trattato come caso speciale a livello di server.
 def get_parser_class(domain: str):
     """
     Restituisce la classe parser corretta per il dominio richiesto.
     """
     specific_parsers = {
-        "it.wikipedia.org": ParserWikipedia
+        "it.wikipedia.org": ParserWikipedia,
+        "limesonline.com": ParserGeneric,
+        "yahoo.com": ParserGeneric,
+        "who.int": WHOParser
     }
 
-    return specific_parsers.get(domain, ParserBase)
+    parser_class = specific_parsers.get(domain)
+    if parser_class is None:
+        raise ValueError(f"Nessun parser registrato per il dominio: {domain}")
+
+    return parser_class
 
 
 # Percorso del Gold Standard.
@@ -262,50 +285,12 @@ async def parse_from_html(
     parser_class = get_parser_class(domain)
     parser = parser_class(url)
 
-    # Generatore markdown di fallback: usato se il parser specifico non trova testo.
-    fallback_markdown_generator = DefaultMarkdownGenerator(
-        options={
-            "ignore_links": True,
-            "ignore_images": True,
-            "body_width": 0
-        }
-    )
-
-    # Configurazione fallback senza css_selector specifico del dominio.
-    fallback_config = CrawlerRunConfig(
-        cache_mode=CacheMode.BYPASS,
-        excluded_tags=["script", "style", "nav", "footer", "noscript"],
-        word_count_threshold=0,
-        markdown_generator=fallback_markdown_generator
-    )
-
     try:
-        async with AsyncWebCrawler(config=parser.browser_config) as crawler:
-            # Primo tentativo: usa la configurazione del parser del dominio.
-            result = await crawler.arun(
-                url=f"raw:{html_text}",
-                config=parser.crawl_config
-            )
-
-            if not result.success:
-                raise RuntimeError("Crawl4AI non e' riuscito a parsare l'HTML.")
-
-            raw_markdown = result.markdown.raw_markdown or ""
-
-            # Se la configurazione specifica non produce testo, riprova in modo generico.
-            if not raw_markdown.strip():
-                result = await crawler.arun(
-                    url=f"raw:{html_text}",
-                    config=fallback_config
-                )
-
-                if not result.success:
-                    raise RuntimeError("Parsing fallback fallito.")
-
-                raw_markdown = result.markdown.raw_markdown or ""
-
-            parsed_text = parser.clean_markdown(raw_markdown)
-            title = title_override or result.metadata.get("title", "")
+        # MODIFICA: delega uniforme al parser di dominio.
+        data = await parser.parse_html(
+            html_text=html_text,
+            title_override=title_override
+        )
 
     except Exception as exc:
         raise HTTPException(
@@ -313,13 +298,14 @@ async def parse_from_html(
             detail=f"Parsing HTML fallito: {exc}"
         ) from exc
 
-    return ParsedDocumentResponse(
-        url=url,
-        domain=domain,
-        title=title,
-        html_text=html_text,
-        parsed_text=parsed_text
-    )
+    if "error" in data:
+        raise HTTPException(
+            status_code=502,
+            detail="Parsing HTML fallito."
+        )
+
+    data["domain"] = domain
+    return ParsedDocumentResponse(**data)
 
 
 # Aggregazione metriche.
@@ -495,3 +481,5 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
         )
 
     return aggregate_evaluations(evaluation_results)
+
+# ===== FINE CODICE SCRITTO DA CODEX =====
