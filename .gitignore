@@ -11,3 +11,4 @@ backend/src/extracted_to_md.py
 #cartelle
 __pycache__/
 backend/data/
+.vscode/
