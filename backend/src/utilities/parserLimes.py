@@ -57,17 +57,44 @@ class ParserLimes(ParserBase):
             return ""
         
         #Filtro frasi con indicatori di rumore
-        noise_indicators = ["continua a leggere","leggi anche","qui il link" "hanno collaborato"]
+        #lo uso per frasi più 'statiche'
+        noise_indicators = ["continua a leggere","leggi anche", "hanno collaborato", "ha collaborato", "limes extra"]
         text = clean_markdown_noise(text, noise_indicators)
 
         #Filtro regex
+        #lo uso per pattern più 'dinamici'
         substitution_rules =  [
             # rimuove separatori tipo * * * oppure *** 
             (r'^\s*(?:\*\s*)+$', ""),
 
-            #rimuove frasi e link non desiderati
+            #regex per cercare di rimuovere frasi di distrurbo con
+            #link di partecipazione, iscrizione, email di prenotazione..
             (
-                r"^\s*(?:qui\s+(?:il\s+)?)?(?:il\s+)?(?:video|link|audio|podcast)(?:\s+(?:dell[\'’]evento|della\s+puntata|per\s+partecipare(?:\s+all[\'’]evento)?|youtube))?\s*:?\s*$",
+                r"^\s*(?:clicca|consulta|guarda|scopri|leggi)(?:\s+qui)?\b.*?\b(?:informazioni|dettagli|programma(?:\s+completo)?)\.?\s*$",
+                "",
+            ),
+            (
+                r"^\s*(?:per|potete)\s+(?:partecipare|prenotarvi|prenotarsi)\b.*?\b(?:link|clicca\s+qui|qui)\b.*?\.?\s*$",
+                "",
+            ),
+            (
+                r"^\s*(?:per|potete)\s+(?:partecipare|prenotarvi|prenotarsi)\b.*?\b(?:scrivendo|inviando)\b.*?\b(?:indirizzo|mail|email)\b.*?@.*$",
+                "",
+                ),
+            (
+                r"^\s*(?:tutte\s+le\s+informazioni|maggiori\s+informazioni|per\s+informazioni)\b.*?(?:www\.|https?://).*$",
+                "",
+            ),
+            (
+                r"^\s*(?:qui\s+tutti\s+i\s+dettagli|qui\s+il\s+link(?:\s+alle\s+dirette)?|consulta\s+qui\s+il\s+programma(?:\s+completo)?)\.?\s*$",
+                "",
+            ),
+            (
+                r"^\s*qui\s+il\s+link\s+per\b.*$",
+                "",
+            ),
+            (
+                r"^\s*(?:qui\s+)?(?:il\s+video|le\s+foto)\s+dell['’]evento\s*:?\s*$",
                 "",
             ),
 
