@@ -3,17 +3,6 @@ from collections import Counter
 import jiwer
 from rouge_score import rouge_scorer
 
-def remove_dynamic_price_line(text: str) -> str:
-    """
-    Rimuove la linea dinamica che indica l'orario e lo stato del mercato. 
-    Necessaria per evitare che questa informazione, che cambia ad ogni esecuzione, 
-    influenzi le metriche di valutazione.
-    """
-    return re.sub(
-        r'.+As of \d{1,2}:\d{2}:\d{2} [AP]M [A-Z]{2,4}\. Market (?:Open|Closed)\.',
-        '', text
-    ).strip()
-
 def remove_markdown(text: str) -> str:
     """
     Rimuove la formattazione markdown. Al fine di valutare solo il contenuto 
@@ -39,15 +28,6 @@ def remove_markdown(text: str) -> str:
 
     return text
 
-def preprocess(text: str) -> str:
-    """
-    Applica tutte le pulizie necessarie al testo estratto prima di calcolare 
-    le metriche. Rimuove la linea dinamica e la formattazione markdown, 
-    restituendo una stringa pulita pronta per l'analisi.
-    """
-    text = remove_dynamic_price_line(text)
-    text = remove_markdown(text)
-    return text
 
 def get_token_set(text: str) -> set[str]:
     """
@@ -74,7 +54,7 @@ def token_level_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     Calcola l'intersezione pura dei set di parole, ignorando l'ordine.
     Implementazione richiesta dalle specifiche del progetto.
     """
-    cleaned_parsed: str = preprocess(parsed_text)
+    cleaned_parsed: str = remove_markdown(parsed_text)
 
     extracted_tokens: set[str] = get_token_set(cleaned_parsed)
     gs_tokens: set[str] = get_token_set(gold_text)
@@ -112,7 +92,7 @@ def character_level_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     microscopico (es. tag HTML residui, punteggiatura spuria), garantendo 
     un'esecuzione lineare O(N).
     """
-    cleaned_parsed: str = preprocess(parsed_text)
+    cleaned_parsed: str = remove_markdown(parsed_text)
     
     # Rimuoviamo gli spazi per concentrare il calcolo solo sul contenuto 
     # e sulla punteggiatura.
@@ -159,7 +139,7 @@ def jaccard_similarity(parsed_text: str, gold_text: str) -> float:
     Fornisce un singolo valore in [0, 1] utile per valutare la 
     sovrapposizione globale.
     """
-    cleaned_parsed: str = preprocess(parsed_text)
+    cleaned_parsed: str = remove_markdown(parsed_text)
     
     extracted_tokens: set[str] = get_token_set(cleaned_parsed)
     gs_tokens: set[str] = get_token_set(gold_text)
@@ -183,7 +163,7 @@ def word_error_rate(parsed_text: str, gold_text: str) -> float:
     Sfrutta la libreria standard 'jiwer'.
     Minore è il valore, più fedele è l'estrazione.
     """
-    cleaned_parsed: str = preprocess(parsed_text)
+    cleaned_parsed: str = remove_markdown(parsed_text)
     
     str_parsed: str = get_token_string(cleaned_parsed)
     str_gold: str = get_token_string(gold_text)
@@ -206,7 +186,7 @@ def rouge_l_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     Valuta l'integrità strutturale del testo estratto calcolando la 
     Longest Common Subsequence (LCS). Utilizza il pacchetto 'rouge-score'.
     """
-    cleaned_parsed: str = preprocess(parsed_text)
+    cleaned_parsed: str = remove_markdown(parsed_text)
     
     str_parsed: str = get_token_string(cleaned_parsed)
     str_gold: str = get_token_string(gold_text)
