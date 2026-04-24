@@ -30,7 +30,7 @@ class WHOParser(ParserBase):
                 .translation-links, .donate, .newsletter,
                 .slicknav_menu, .alphabetical-nav, .navigation,
                 .region-picker, .sf-image-credit, .timestamp, .table-cell, .arrowed-link, 
-                div.sf-publications-item__date, .titile, .arrowed-links, .section-heading, a.link, .section-navigation, .sidebar
+                div.sf-publications-item__date, .titile, .arrowed-links, .section-heading, a.link, .section-navigation, .sidebar, .heading.text-underline
             """,
             excluded_tags=["style", "script", "nav", "footer", "aside", "form", "button", "svg"],
             word_count_threshold=0,
@@ -123,6 +123,17 @@ class WHOParser(ParserBase):
             "human behaviour",
             "departmental update",
             "address",
+
+            "emergency situation reports",
+            "joint news release",
+            "feature stories",
+            "commentaries",
+            "speeches",
+            "statements",
+            "technical documents",
+            "events",
+            "campaigns",
+            "who occupied palestinian territory",
         }
 
         kept = []
