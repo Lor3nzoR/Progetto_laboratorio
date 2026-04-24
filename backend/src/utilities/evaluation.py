@@ -23,9 +23,12 @@ def remove_markdown(text: str) -> str:
     text = re.sub(r'^[-\*]{3,}\s*$', '', text, flags=re.MULTILINE)
     # Citazioni.
     text = re.sub(r'^\s*>\s*', '', text, flags=re.MULTILINE)
+    # Separatori tabelle markdown.
+    text = re.sub(r'\|[\s\|\-:]+\|', '', text)
+    # Doppio trattino isolato.
+    text = re.sub(r'\s--\s', ' ', text)
     # Normalizza spazi e newline, lasciando un singolo spazio.
     text = re.sub(r'\s+', ' ', text).strip()
-
     return text
 
 

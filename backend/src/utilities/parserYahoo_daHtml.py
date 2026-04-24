@@ -31,6 +31,8 @@ class ParserYahooFinanceHtml(ParserBase):
             "footer",
             "nav",
             "aside",
+            "header.hideOnPrint",              # navbar principale Yahoo
+            "header._yb_p560ks",               # altro header principale
             ".consent-overlay",
             "#consent-page",
             "[data-testid='ad-container']",
@@ -55,7 +57,7 @@ class ParserYahooFinanceHtml(ParserBase):
         ]
 
         article_extra = [
-            "header",                              # <-- solo qui
+            "header",                              # <-- solo qui esclude tutti gli header
             "[data-testid='sidebar']",
             "[data-testid='related-articles']",
             "[data-testid='author-bio']",
@@ -72,11 +74,11 @@ class ParserYahooFinanceHtml(ParserBase):
         ]
 
         if page_type == "quote":
-            return ", ".join(base + quote_extra)   # no header, css_selector ci pensa
+            return ", ".join(base + quote_extra)
         elif page_type == "article":
             return ", ".join(base + article_extra)
 
-        return ", ".join(base + ["header"])        # generic: header nel base
+        return ", ".join(base)                     # generic: header specifici già nel base
 
     def _build_css_selector(self, page_type: str) -> str | None:
         if page_type == "quote":
@@ -188,6 +190,12 @@ class ParserYahooFinanceHtml(ParserBase):
             "disclaimer", "view more", "see more", "read more", "learn more",
             "expand all", "view original content to download multimedia",
             "newsroom: media hub",
+            "all sectors",
+            "select a sector for",
+            "note: percentage % data",
+            "valuation by forge",
+            "firm data by equityzen",
+            "powered by polymarket",
         ]
         text = clean_markdown_noise(text, noise_indicators)
 
@@ -200,6 +208,8 @@ class ParserYahooFinanceHtml(ParserBase):
             (r'^[A-Z][A-Za-z\s]+\s+\w+\s+\d{1,2},\s+\d{4}\s+\d+\s+min\s+read\s*', ''),
             # Ticker residui tipo "F -0.70%" prima del testo
             (r'^[A-Z]{1,5}\s+[-+]?\d+\.\d+%\s*', ''),
+            # Scala heatmap "<= -3 -2 -1 0 1 2 >= 3"
+            (r'(?m)^<=?\s*-?\d[\d\s\->=]*$', ''),
             (r'[ \t]{2,}', ' '),
             (r'\n{3,}', '\n\n'),
         ]
