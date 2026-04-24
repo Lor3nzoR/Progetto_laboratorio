@@ -87,6 +87,20 @@ class ParserYahooFinanceHtml(ParserBase):
             return "[data-testid='article-body'], .caas-body"
         return "#main-content-wrapper"
 
+    def _build_js_cleanup(self, page_type: str) -> str | None:
+        if page_type != "article":
+            return None
+        return """
+            // Yahoo Finance carica articoli successivi via seamless scroll già nell'HTML.
+            // Rimuove tutto tranne il primo articolo.
+            document.querySelectorAll('li[data-testid^="seamlessscroll-"]')
+                    .forEach(el => el.remove());
+
+            // Rimuove elementi di contorno residui
+            document.querySelectorAll('figcaption, .byline, .ticker-list, .readmore, .article-footer')
+                    .forEach(el => el.remove());
+        """
+
     async def get_data(self) -> dict:
         if not self.raw_html or not self.raw_html.strip():
             return {"error": "Stringa HTML vuota fornita."}
@@ -105,6 +119,10 @@ class ParserYahooFinanceHtml(ParserBase):
         )
         if css_selector:
             config_kwargs["css_selector"] = css_selector
+
+        js_cleanup = self._build_js_cleanup(page_type)
+        if js_cleanup:
+            config_kwargs["js_code"] = js_cleanup
 
         extraction_config = CrawlerRunConfig(**config_kwargs)
 
@@ -168,7 +186,8 @@ class ParserYahooFinanceHtml(ParserBase):
             "cookie settings", "accept all", "privacy dashboard",
             "quotes are not sourced", "delayed at least",
             "disclaimer", "view more", "see more", "read more", "learn more",
-            "expand all",
+            "expand all", "view original content to download multimedia",
+            "newsroom: media hub",
         ]
         text = clean_markdown_noise(text, noise_indicators)
 
@@ -176,7 +195,8 @@ class ParserYahooFinanceHtml(ParserBase):
             (r'!\[.*?\]\(.*?\)', ''),
             (r'\[([^\]]+)\]\(.*?\)', r'\1'),
             (r'https?://\S+', ''),
-            # Residui byline: "Reuters April 7, 2026 1 min read" o "F -0.70% WASHINGTON..."
+            (r'(?i)^(view original content|more information about|for more information).*$', ''),
+            # Residui byline: "Reuters April 7, 2026 1 min read"
             (r'^[A-Z][A-Za-z\s]+\s+\w+\s+\d{1,2},\s+\d{4}\s+\d+\s+min\s+read\s*', ''),
             # Ticker residui tipo "F -0.70%" prima del testo
             (r'^[A-Z]{1,5}\s+[-+]?\d+\.\d+%\s*', ''),
