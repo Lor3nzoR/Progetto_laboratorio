@@ -98,3 +98,5 @@ urllib3==2.6.3
 xxhash==3.6.0
 yarl==1.23.0
 zipp==3.23.0
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
