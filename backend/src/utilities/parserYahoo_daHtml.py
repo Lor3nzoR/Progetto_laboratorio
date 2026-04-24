@@ -54,6 +54,11 @@ class ParserYahooFinanceHtml(ParserBase):
             "[data-testid='people-also-watch']",
             "[data-testid='related-tickers']",
             "[data-testid='quote-events-list']",
+            "[data-testid='video-player']",
+            "[data-testid='related-video-player']",
+            ".video-module",
+            ".js-stream-content",
+            "[data-testid='ticker-news']",
         ]
 
         article_extra = [
@@ -169,6 +174,7 @@ class ParserYahooFinanceHtml(ParserBase):
             "trending tickers", "recently viewed tickers",
             "you may also like", "related stories",
             "popular", "see also", "references",
+            "related videos",
         ]
 
         # Layer aggiuntivo per le quote: le news sono rumore

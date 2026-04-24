@@ -87,3 +87,33 @@ def clean_markdown_regex(raw_markdown: str, regex: Iterable[tuple[str, str]]) ->
         text = re.sub(pattern, replacement, text, flags=re.MULTILINE | re.IGNORECASE)
 
     return text.strip()
+
+def clean_markdown_by_section_title(text: str, titles_to_remove: list[str]) -> str:
+    lines = text.splitlines()
+    result = []
+    skip = False
+    current_level = 0
+
+    for i, line in enumerate(lines):
+        header_match = re.match(r'^(#{1,6})\s+(.*)', line)
+        if header_match:
+            level = len(header_match.group(1))
+            title = header_match.group(2).strip().lower()
+
+            # Controlla se la riga successiva è un marker video
+            next_line = lines[i + 1].strip() if i + 1 < len(lines) else ""
+            is_video = re.match(r'^\*\s+\d{2}:\d{2}', next_line) or "yahoo finance video" in next_line.lower()
+
+            if skip and level <= current_level and not is_video:
+                skip = False
+
+            is_noise = any(t.lower() in title for t in titles_to_remove) or is_video
+            if is_noise:
+                skip = True
+                current_level = level
+                continue
+
+        if not skip:
+            result.append(line)
+
+    return '\n'.join(result)

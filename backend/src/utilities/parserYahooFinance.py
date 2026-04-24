@@ -1,9 +1,10 @@
 import re
 import requests
+from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode, BrowserConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from .parserBase import ParserBase
-from .md_cleaning import clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
+from .md_cleaning import clean_markdown_by_section_title, clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
 
 
 class ParserYahooFinance(ParserBase):
@@ -36,21 +37,7 @@ class ParserYahooFinance(ParserBase):
     }
 
     def set_crawler(self) -> CrawlerRunConfig:
-        """
-        Configurazione usata dal POST /parse (HTML già disponibile, no JS).
-        """
-        return CrawlerRunConfig(
-            cache_mode=CacheMode.BYPASS,
-            excluded_selector=", ".join([
-                "header", "footer", "nav", "aside",
-                "[class*='ad']", "[id*='ad']",
-            ]),
-            excluded_tags=["script", "style", "iframe", "noscript"],
-            word_count_threshold=0,
-            markdown_generator=DefaultMarkdownGenerator(
-                options={"ignore_links": True, "ignore_images": True, "body_width": 0}
-            ),
-        )
+        return CrawlerRunConfig()
 
     def set_browser(self) -> BrowserConfig:
         """Browser con user-agent desktop reale per ridurre il rilevamento bot."""
@@ -74,6 +61,99 @@ class ParserYahooFinance(ParserBase):
             },
         )
 
+    def _get_page_type(self) -> str:
+        if "/quote/" in self.url:
+            return "quote"
+        elif any(p in self.url for p in ["/news/", "/m/", "/article/", "/story/"]):
+            return "article"
+        elif "/markets/" in self.url:
+            return "markets"
+        return "generic"
+
+    def _build_excluded_selector(self, page_type: str) -> str:
+        base = [
+            "footer",
+            "nav",
+            "aside",
+            "header.hideOnPrint",              # navbar principale Yahoo
+            "header._yb_p560ks",               # altro header principale
+            ".consent-overlay",
+            "#consent-page",
+            "[data-testid='ad-container']",
+            "[data-testid='tradenow-ad-container']",
+            ".sdaContainer",
+        ]
+
+        quote_extra = [
+            "[data-testid='quote-title']",
+            ".topCta",
+            ".bottomCta",
+            ".event-banner",
+            "[data-testid='chart-container']",
+            "[data-testid='ticker-news-summary']",
+            "[data-testid='recent-news']",
+            "[data-testid='company-overview-card'] .footer",
+            "[data-testid='earnings-trends']",
+            "[data-testid='compare-to']",
+            "[data-testid='people-also-watch']",
+            "[data-testid='related-tickers']",
+            "[data-testid='quote-events-list']",
+            "[data-testid='video-player']",
+            "[data-testid='related-video-player']",
+            ".video-module",
+            ".js-stream-content",
+            "[data-testid='ticker-news']",
+        ]
+
+        article_extra = [
+            "header",                              # <-- solo qui esclude tutti gli header
+            "[data-testid='sidebar']",
+            "[data-testid='related-articles']",
+            "[data-testid='author-bio']",
+            ".caas-readmore",
+            ".caas-more-content",
+            ".recommendations",
+            "figcaption",                          # didascalie foto ("FILE PHOTO: ... · Reuters")
+            ".byline",                             # barra autore/data/"N min read"
+            ".ticker-list",                        # pillole ticker azionari inline
+            ".readmore",                           # pulsante "Story Continues"
+            ".article-footer",                     # footer Terms/Privacy
+            ".cover-slideshow-wrapper",            # slideshow immagini
+        ]
+
+        if page_type == "quote":
+            return ", ".join(base + quote_extra)
+        elif page_type == "article":
+            return ", ".join(base + article_extra)
+
+        return ", ".join(base)
+
+    def _build_css_selector(self, page_type: str) -> str | None:
+        if page_type == "quote":
+            return "main"
+        elif page_type == "article":
+            return "[data-testid='article-body'], .caas-body"
+        return "#main-content-wrapper"
+
+    def _build_js_cleanup(self, page_type: str) -> str | None:
+        if page_type == "article":
+            return """
+                document.querySelectorAll('li[data-testid^="seamlessscroll-"]')
+                        .forEach(el => el.remove());
+                document.querySelectorAll('figcaption, .byline, .ticker-list, .readmore, .article-footer')
+                        .forEach(el => el.remove());
+            """
+        if page_type == "quote":
+            return """
+                document.querySelectorAll(
+                    '[data-testid="video-player"], [data-testid="related-video-player"], ' +
+                    '.video-module, .js-stream-content, [data-testid="ticker-news"], ' +
+                    '[data-testid="ticker-news-summary"], [data-testid="recent-news"], ' +
+                    '.watch-now-lead'
+                ).forEach(el => el.remove());
+            """
+        return None
+
     def _get_consent_cookies(self) -> list[dict]:
         """
         Usa requests per:
@@ -81,9 +161,6 @@ class ParserYahooFinance(ParserBase):
         2. Estrarre i campi nascosti del form di consenso GDPR
         3. Fare il POST con agree=agree
         4. Restituire i cookie nel formato atteso da Crawl4AI
-
-        Se non c'è pagina di consenso (cookie già presenti o altro),
-        restituisce i cookie della sessione corrente.
         """
         session = requests.Session()
         session.headers.update(self._REQUEST_HEADERS)
@@ -93,7 +170,6 @@ class ParserYahooFinance(ParserBase):
         except requests.RequestException as e:
             raise RuntimeError(f"[YahooFinance] Errore GET {self.url}: {e}") from e
 
-        # Controlla se siamo sulla pagina di consenso
         is_consent_page = (
             "Le tue scelte relative alla privacy" in resp.text
             or "consent-page" in resp.text
@@ -101,7 +177,6 @@ class ParserYahooFinance(ParserBase):
         )
 
         if is_consent_page:
-            # Estrae i campi nascosti del form con regex
             fields = {
                 "csrfToken": re.search(r'name="csrfToken"\s+value="([^"]+)"', resp.text),
                 "sessionId": re.search(r'name="sessionId"\s+value="([^"]+)"', resp.text),
@@ -112,7 +187,6 @@ class ParserYahooFinance(ParserBase):
             }
 
             if not fields["csrfToken"] or not fields["sessionId"]:
-                # Form non trovato: restituisce i cookie esistenti
                 return self._session_cookies_to_list(session)
 
             form_data = {
@@ -125,7 +199,7 @@ class ParserYahooFinance(ParserBase):
             try:
                 session.post(resp.url, data=form_data, timeout=30)
             except requests.RequestException:
-                pass  # Anche se il POST fallisce, i cookie parziali possono bastare
+                pass
 
         return self._session_cookies_to_list(session)
 
@@ -148,15 +222,14 @@ class ParserYahooFinance(ParserBase):
         1. _get_consent_cookies() gestisce il consenso GDPR via requests
         2. Crawl4AI carica la pagina con i cookie già impostati
         """
-        # Fase 1: ottieni i cookie di consenso
         try:
             consent_cookies = self._get_consent_cookies()
         except RuntimeError as e:
             return {"error": str(e)}
 
-        # Fase 2: carica la pagina reale con i cookie iniettati nel browser.
-        # I cookie vanno in BrowserConfig.storage_state (formato Playwright):
-        # CrawlerRunConfig non supporta il parametro cookies in questa versione.
+        page_type = self._get_page_type()
+        css_selector = self._build_css_selector(page_type)
+
         browser_with_cookies = BrowserConfig(
             headless=True,
             browser_type="chromium",
@@ -178,75 +251,148 @@ class ParserYahooFinance(ParserBase):
             storage_state={"cookies": consent_cookies, "origins": []},
         )
 
-        live_config = CrawlerRunConfig(
+        config_kwargs = dict(
             cache_mode=CacheMode.BYPASS,
             wait_until="domcontentloaded",
-            delay_before_return_html=5.0,
-            excluded_selector=", ".join([
-                "header", "footer", "nav", "aside",
-                "[class*='ad']", "[id*='ad']",
-                ".consent-overlay", "#consent-page",
-            ]),
+            delay_before_return_html=12.0,
+            page_timeout=60000,
+            excluded_selector=self._build_excluded_selector(page_type),
             excluded_tags=["script", "style", "iframe", "noscript"],
             word_count_threshold=0,
-            page_timeout=45000,
             markdown_generator=DefaultMarkdownGenerator(
                 options={"ignore_links": True, "ignore_images": True, "body_width": 0}
             ),
         )
+
+        if css_selector:
+            config_kwargs["css_selector"] = css_selector
+
+        js_cleanup = self._build_js_cleanup(page_type)
+        if js_cleanup:
+            config_kwargs["js_code"] = js_cleanup
+
+        # wait_for condizionale per tipo pagina
+        if page_type == "markets":
+            config_kwargs["wait_for"] = "css:table td:not(:empty)"
+        elif page_type == "article":
+            config_kwargs["wait_for"] = "css:[data-testid='article-body']"
+
+        live_config = CrawlerRunConfig(**config_kwargs)
 
         async with AsyncWebCrawler(config=browser_with_cookies) as crawler:
             result = await crawler.arun(url=self.url, config=live_config)
 
         html = result.html or ""
         raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
-
         if not html:
             return {"error": "Nessun HTML ricevuto dalla pagina."}
 
-        # Verifica che non siamo ancora sulla pagina di consenso
         if "Le tue scelte relative alla privacy" in html or "consent-page" in html:
             return {"error": "Bloccato dalla pagina di consenso GDPR nonostante i cookie."}
 
         if not raw_md.strip():
             return {"error": "Nessun testo estratto dalla pagina."}
 
+        soup = BeautifulSoup(html, "html.parser")
+        page_title = result.metadata.get("title", "") if result.metadata else ""
+        cover_title_tag = soup.find("h1", class_=lambda c: c and "cover-title" in c)
+        article_title = cover_title_tag.get_text(strip=True) if cover_title_tag else page_title
+
         return {
             "url": self.url,
-            "domain": self.domain,
-            "title": result.metadata.get("title", "") if result.metadata else "",
+            "domain": getattr(self, 'domain', 'finance.yahoo.com'),
+            "title": article_title,
             "html_text": html,
-            "parsed_text": self.clean_markdown(raw_md),
+            "parsed_text": self.clean_markdown(raw_md, page_type),
         }
 
-    def clean_markdown(self, text: str) -> str:
+    def clean_markdown(self, text: str, page_type: str = "") -> str:
         """Rimuove boilerplate e formattazione residua dall'output di Crawl4AI."""
         if not text:
             return ""
 
         noise_sections = [
             "trending tickers", "recently viewed tickers",
-            "you may also like", "related news", "related stories",
+            "you may also like", "related stories",
             "popular", "see also", "references",
         ]
+
+        if page_type == "quote":
+            noise_sections += [
+                "related news",
+                "upcoming events",
+                "recent events",
+                "news",
+            ]
+
         text = clean_markdown_by_sections(text, noise_sections)
+
+        text = clean_markdown_by_section_title(text, titles_to_remove=["related videos", "related news", "yahoo finance video", "recent news"])
 
         noise_indicators = [
             "data provided by", "all rights reserved", "sign in to",
             "try yahoo finance plus", "upgrade to premium",
             "cookie settings", "accept all", "privacy dashboard",
             "quotes are not sourced", "delayed at least",
-            "currency in", "disclaimer",
+            "disclaimer", "view more", "see more", "read more", "learn more",
+            "expand all", "view original content to download multimedia",
+            "newsroom: media hub",
+            "all sectors",
+            "select a sector for",
+            "note: percentage % data",
+            "valuation by forge",
+            "firm data by equityzen",
+            "powered by polymarket",
+            "videos cannot play",
+            "yahoo finance video",
+            "error code:",
+            "session id:",
         ]
         text = clean_markdown_noise(text, noise_indicators)
 
         substitution_rules = [
-            (r'!\[.*?\]\(.*?\)', ''),           # rimuove immagini markdown
-            (r'\[([^\]]+)\]\(.*?\)', r'\1'),    # link -> solo testo
-            (r'https?://\S+', ''),              # URL solitari
-            (r'[ \t]{2,}', ' '),                # spazi multipli
-            (r'\n{3,}', '\n\n'),                # righe vuote eccessive
+            (r'!\[.*?\]\(.*?\)', ''),
+            (r'\[([^\]]+)\]\(.*?\)', r'\1'),
+            (r'https?://\S+', ''),
+            (r'(?i)^(view original content|more information about|for more information).*$', ''),
+            # Residui byline: "Reuters April 7, 2026 1 min read"
+            (r'^[A-Z][A-Za-z\s]+\s+\w+\s+\d{1,2},\s+\d{4}\s+\d+\s+min\s+read\s*', ''),
+            # Ticker residui tipo "F -0.70%" prima del testo
+            (r'^[A-Z]{1,5}\s+[-+]?\d+\.\d+%\s*', ''),
+            # Scala heatmap "<= -3 -2 -1 0 1 2 >= 3"
+            (r'(?m)^<=?\s*-?\d[\d\s\->=]*$', ''),
+            (r'[ \t]{2,}', ' '),
+            (r'\n{3,}', '\n\n'),
+            (r'(?m)^###[^\n]+\nYahoo Finance Video[^\n]*\n', ''),
         ]
         text = clean_markdown_regex(text, substitution_rules)
 
         return text.strip()
+
+    @staticmethod
+    def _remove_duplicate_paragraphs(text: str) -> str:
+        blocks = re.split(r'\n{2,}', text)
+        seen = []
+        result = []
+
+        for block in blocks:
+            normalized = re.sub(r'\s+', ' ', block.strip().lower())
+            if not normalized:
+                continue
+
+            is_duplicate = False
+            for seen_block in seen:
+                if normalized == seen_block:
+                    is_duplicate = True
+                    break
+                shorter = min(normalized, seen_block, key=len)
+                longer = max(normalized, seen_block, key=len)
+                if len(shorter) > 100 and shorter in longer:
+                    is_duplicate = True
+                    break
+
+            if not is_duplicate:
+                seen.append(normalized)
+                result.append(block)
+
+        return '\n\n'.join(result)
