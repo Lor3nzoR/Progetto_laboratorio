@@ -33,6 +33,8 @@ from utilities.evaluation import evaluate_all
 from utilities.parserGeneric import ParserGeneric
 from utilities.parserWikipedia import ParserWikipedia
 from utilities.parserWho import WHOParser
+from utilities.parserLimes import ParserLimes
+from utilities.parserYahooFinance import ParserYahooFinance
 
 
 # Percorsi base del progetto.
@@ -186,8 +188,8 @@ def get_parser_class(domain: str):
     """
     specific_parsers = {
         "it.wikipedia.org": ParserWikipedia,
-        "limesonline.com": ParserGeneric,
-        "yahoo.com": ParserGeneric,
+        "limesonline.com": ParserLimes,
+        "yahoo.com": ParserYahooFinance,
         "who.int": WHOParser
     }
 
