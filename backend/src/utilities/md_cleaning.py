@@ -84,6 +84,6 @@ def clean_markdown_regex(raw_markdown: str, regex: Iterable[tuple[str, str]]) ->
     """
     text = raw_markdown
     for pattern, replacement in regex:
-        text = re.sub(pattern, replacement, text, flags=re.MULTILINE)
+        text = re.sub(pattern, replacement, text, flags=re.MULTILINE | re.IGNORECASE)
 
     return text.strip()

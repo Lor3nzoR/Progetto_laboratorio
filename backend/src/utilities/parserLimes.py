@@ -4,6 +4,13 @@ from .parserBase import ParserBase
 from .md_cleaning import clean_markdown_noise, clean_markdown_regex
 
 class ParserLimes(ParserBase):
+
+    """
+    Difficoltà più grande è la rimozione di frasi o link difficilmente
+    distinguibili rispetto al testo informativo
+    -> "il video dell'evento:"
+    -> link isolati senza descrizione e indistinguibili dagli altri
+    """
     
     def set_crawler(self):
         # Creiamo il generatore di Markdown con le opzioni desiderate
@@ -50,13 +57,19 @@ class ParserLimes(ParserBase):
             return ""
         
         #Filtro frasi con indicatori di rumore
-        noise_indicators = ["continua a leggere","leggi anche","qui il link", "hanno collaborato"]
+        noise_indicators = ["continua a leggere","leggi anche","qui il link" "hanno collaborato"]
         text = clean_markdown_noise(text, noise_indicators)
 
         #Filtro regex
         substitution_rules =  [
             # rimuove separatori tipo * * * oppure *** 
             (r'^\s*(?:\*\s*)+$', ""),
+
+            #rimuove frasi e link non desiderati
+            (
+                r"^\s*(?:qui\s+(?:il\s+)?)?(?:il\s+)?(?:video|link|audio|podcast)(?:\s+(?:dell[\'’]evento|della\s+puntata|per\s+partecipare(?:\s+all[\'’]evento)?|youtube))?\s*:?\s*$",
+                "",
+            ),
 
             # collassa spazi multipli
             (r"[ \t]+", " "),
