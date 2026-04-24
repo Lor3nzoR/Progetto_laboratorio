@@ -5,7 +5,7 @@ temporanea_per_GS/testo_grezzo.txt
 temporanea_per_GS/testo_pronto.txt
 backend/src/main.py
 backend/src/output.md
-backend/src/extracted_to_md.py
+backend/src/extract_to_md.py
 
 
 #cartelle
