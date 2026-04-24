@@ -22,7 +22,7 @@ class ParserYahooFinanceHtml(ParserBase):
     def _get_page_type(self) -> str:
         if "/quote/" in self.url:
             return "quote"
-        elif "/news/" in self.url or "/m/" in self.url:
+        elif any(p in self.url for p in ["/news/", "/m/", "/article/", "/story/"]):
             return "article"
         return "generic"
 
@@ -38,34 +38,54 @@ class ParserYahooFinanceHtml(ParserBase):
             ".sdaContainer",
         ]
 
-        if page_type == "quote":
-            quote_specific = [
-                "[data-testid='quote-title']",
-                ".topCta",
-                ".bottomCta",
-                ".event-banner",
-                "[data-testid='chart-container']",
-                "[data-testid='ticker-news-summary']",
-                "[data-testid='recent-news']",
-                "[data-testid='company-overview-card'] .footer",
-                "[data-testid='earnings-trends']",
-                "[data-testid='compare-to']",
-                "[data-testid='people-also-watch']",
-                "[data-testid='related-tickers']",
-            ]
-            return ", ".join(base + quote_specific)
+        quote_extra = [
+            "[data-testid='quote-title']",
+            ".topCta",
+            ".bottomCta",
+            ".event-banner",
+            "[data-testid='chart-container']",
+            "[data-testid='ticker-news-summary']",
+            "[data-testid='recent-news']",
+            "[data-testid='company-overview-card'] .footer",
+            "[data-testid='earnings-trends']",
+            "[data-testid='compare-to']",
+            "[data-testid='people-also-watch']",
+            "[data-testid='related-tickers']",
+            "[data-testid='quote-events-list']",
+        ]
 
-        return ", ".join(base)
+        article_extra = [
+            "header",                              # <-- solo qui
+            "[data-testid='sidebar']",
+            "[data-testid='related-articles']",
+            "[data-testid='author-bio']",
+            ".caas-readmore",
+            ".caas-more-content",
+            ".recommendations",
+            # Yahoo Finance specifici
+            "figcaption",                          # didascalie foto ("FILE PHOTO: ... · Reuters")
+            ".byline",                             # barra autore/data/"N min read"
+            ".ticker-list",                        # pillole ticker azionari inline
+            ".readmore",                           # pulsante "Story Continues"
+            ".article-footer",                     # footer Terms/Privacy
+            ".cover-slideshow-wrapper",            # slideshow immagini
+        ]
+
+        if page_type == "quote":
+            return ", ".join(base + quote_extra)   # no header, css_selector ci pensa
+        elif page_type == "article":
+            return ", ".join(base + article_extra)
+
+        return ", ".join(base + ["header"])        # generic: header nel base
 
     def _build_css_selector(self, page_type: str) -> str | None:
-        """
-        Restringe l'estrazione al solo contenuto principale della pagina.
-        Questo evita il problema del nav/header che su Yahoo contiene
-        caratteri aria-hidden che crawl4ai strippa.
-        """
         if page_type == "quote":
-            return "#main-content-wrapper"
-        return None
+            return "main"              # esclude header/aside globali, preserva gli header interni
+        elif page_type == "article":
+            # Preferisce il body dell'articolo; evita 'article' o 'main' che trascinano
+            # byline, figure e seamless scroll articles successivi
+            return "[data-testid='article-body'], .caas-body"
+        return "#main-content-wrapper"
 
     async def get_data(self) -> dict:
         if not self.raw_html or not self.raw_html.strip():
@@ -97,8 +117,14 @@ class ParserYahooFinanceHtml(ParserBase):
             )
 
         soup = BeautifulSoup(self.raw_html, "html.parser")
+
+        # Titolo dalla tag <title> (fallback)
         title_tag = soup.find("title")
-        title = title_tag.text.strip() if title_tag else ""
+        page_title = title_tag.text.strip() if title_tag else ""
+
+        # Titolo articolo da h1.cover-title (più preciso, senza " | Yahoo Finance")
+        cover_title_tag = soup.find("h1", class_=lambda c: c and "cover-title" in c)
+        article_title = cover_title_tag.get_text(strip=True) if cover_title_tag else page_title
 
         raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
 
@@ -108,68 +134,56 @@ class ParserYahooFinanceHtml(ParserBase):
         return {
             "url": self.url,
             "domain": self.domain,
-            "title": title,
+            "title": article_title,
             "html_text": self.raw_html,
             "parsed_text": self.clean_markdown(raw_md, page_type),
         }
 
-    def clean_markdown(self, text: str, page_type: str = "generic") -> str:
+    def clean_markdown(self, text: str, page_type: str = "") -> str:
+        """Rimuove boilerplate e formattazione residua dall'output di Crawl4AI."""
         if not text:
             return ""
 
-        # ── TAGLIO INIZIALE ──────────────────────────────────────────────────
-        # Solo per pagine non-quote dove non usiamo css_selector.
-        # Per le quote page il css_selector #main-content-wrapper
-        # già esclude nav/header, quindi il taglio non serve.
-        if page_type != "quote":
-            match = re.search(r'(?m).*•.*', text)
-            if match:
-                text = text[match.start():]
+        # Sezioni rumore universali
+        noise_sections = [
+            "trending tickers", "recently viewed tickers",
+            "you may also like", "related stories",
+            "popular", "see also", "references",
+        ]
 
-        # ── SEZIONI RUMORE ───────────────────────────────────────────────────
+        # Layer aggiuntivo per le quote: le news sono rumore
         if page_type == "quote":
-            noise_sections = [
-                "trending tickers", "recently viewed tickers",
-                "you may also like", "related news", "related stories",
-                "popular", "see also", "references", "news about",
-            ]
-        else:
-            noise_sections = [
-                "trending tickers", "recently viewed tickers",
-                "you may also like", "related stories",
-                "popular", "see also",
+            noise_sections += [
+                "related news",
+                "upcoming events",
+                "recent events",
+                "news",
             ]
 
         text = clean_markdown_by_sections(text, noise_sections)
 
-        # ── INDICATORI RUMORE ────────────────────────────────────────────────
         noise_indicators = [
             "data provided by", "all rights reserved", "sign in to",
             "try yahoo finance plus", "upgrade to premium",
             "cookie settings", "accept all", "privacy dashboard",
             "quotes are not sourced", "delayed at least",
-            "currency in", "disclaimer",
-            "skip to navigation", "skip to main content",
-            "powered by yahoo scout",
-            "oops, something went wrong",
-            "view more",
+            "disclaimer", "view more", "see more", "read more", "learn more",
+            "expand all",
         ]
         text = clean_markdown_noise(text, noise_indicators)
 
-        # ── REGEX DI PULIZIA ─────────────────────────────────────────────────
         substitution_rules = [
             (r'!\[.*?\]\(.*?\)', ''),
             (r'\[([^\]]+)\]\(.*?\)', r'\1'),
             (r'https?://\S+', ''),
-            (r'(?m)^#{1,6}\s*[-+]?[\d.]+%\s*$', ''),
-            (r'(?m)^#{1,6}\s*[\d,]+\.?\d*%?\s*$', ''),
+            # Residui byline: "Reuters April 7, 2026 1 min read" o "F -0.70% WASHINGTON..."
+            (r'^[A-Z][A-Za-z\s]+\s+\w+\s+\d{1,2},\s+\d{4}\s+\d+\s+min\s+read\s*', ''),
+            # Ticker residui tipo "F -0.70%" prima del testo
+            (r'^[A-Z]{1,5}\s+[-+]?\d+\.\d+%\s*', ''),
             (r'[ \t]{2,}', ' '),
             (r'\n{3,}', '\n\n'),
         ]
         text = clean_markdown_regex(text, substitution_rules)
-
-        # ── DEDUPLICAZIONE ───────────────────────────────────────────────────
-        text = self._remove_duplicate_paragraphs(text)
 
         return text.strip()
 

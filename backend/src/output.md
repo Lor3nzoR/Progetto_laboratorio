@@ -1,64 +1,66 @@
-NasdaqGS - Delayed Quote • USD
-266.17 -6.88 (-2.52%) 
-At close: April 21 at 4:00:01 PM EDT 
-267.30 +1.13 (+0.42%) 
-Pre-Market: 4:50:05 AM EDT 
-### Key Executives 
-| Name | Title | Pay | Exercised | Year Born | 
-| --- | --- | --- | --- | --- | 
-| Mr. Timothy D. Cook | CEO & Director | 16.76M | -- | 1961 | 
-| Mr. Kevan Parekh | Senior VP & CFO | 4.03M | -- | 1972 | 
-| Mr. Sabih Khan | Senior VP & Chief Operating Officer | 5.02M | -- | 1967 | 
-| Ms. Deirdre O'Brien | Senior Vice President of Retail & People | 5.04M | -- | 1967 | 
-| Ms. Katherine L. Adams | Senior VP of Government Affairs & Secretary | 5.02M | -- | 1964 | 
-| Mr. Ben Borders | Principal Accounting Officer | -- | -- | 1981 | 
-| Suhasini Chandramouli | Director of Investor Relations | -- | -- | -- | 
-| Ms. Jennifer G. Newstead J.D. | Senior VP & General Counsel | -- | -- | 1971 | 
-| Ms. Kristin Huguet Quayle | Vice President of Worldwide Communications | -- | -- | -- | 
-| Mr. Greg Joswiak | Senior Vice President of Worldwide Marketing | -- | -- | -- | 
-### Apple Inc. 
-One Apple Park Way
-Cupertino, CA 95014
-United States
-(408) 996-1010 Sector: 
- Technology Industry: 
-Consumer Electronics Full Time Employees: 
- **150,000**
-### Description 
-Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple Vision Pro, Apple TV, Apple Watch, Beats products, and HomePod, as well as Apple branded and third-party accessories. It also provides AppleCare support and cloud services; and operates various platforms, including the App Store that allow customers to discover and download applications and digital content, such as books, music, video, games, and podcasts, as well as advertising services include third-party licensing arrangements and its own advertising platforms. In addition, the company offers various subscription-based services, such as Apple Arcade, a game subscription service; Apple Fitness+, a personalized fitness service; Apple Music, which offers users a curated listening experience with on-demand radio stations; Apple News+, a subscription news and magazine service; Apple TV, which offers exclusive original content and live sports; Apple Card, a co-branded credit card; and Apple Pay, a cashless payment service, as well as licenses its intellectual property. The company serves consumers, and small and mid-sized businesses; and the education, enterprise, and government markets. It distributes third-party applications for its products through the App Store. The company also sells its products through its retail and online stores, and direct sales force; and third-party cellular network carriers and resellers. The company was formerly known as Apple Computer, Inc. and changed its name to Apple Inc. in January 2007. Apple Inc. was founded in 1976 and is headquartered in Cupertino, California.
-### Corporate Governance 
-Apple Inc.’s ISS Governance QualityScore as of April 1, 2026 is 1. The pillar scores are Audit: 2; Board: 1; Shareholder Rights: 1; Compensation: 7.
-Corporate governance scores courtesy of Institutional Shareholder Services (ISS) Scores indicate decile rank relative to index or region. A decile score of 1 indicates lower governance risk, while a 10 indicates higher governance risk.
-### Upcoming Events 
-April 30, 2026 at 8:00 PM UTC
-Apple Inc. Earnings Date
-### Recent Events 
-April 20, 2026 at 12:00 AM UTC
-8-K: Corporate Changes & Voting Matters
-See Full Filing 
-February 24, 2026 at 12:00 AM UTC
-8-K: Corporate Changes & Voting Matters
-See Full Filing 
-February 12, 2026 at 12:00 AM UTC
-Dividend Date
-February 9, 2026 at 12:00 AM UTC
-Ex-Dividend Date
-January 30, 2026 at 12:00 AM UTC
-10-Q: Periodic Financial Reports
-See Full Filing 
-January 29, 2026 at 12:00 AM UTC
-8-K: Corporate Changes & Voting Matters
-See Full Filing 
-January 8, 2026 at 12:00 AM UTC
-DEF 14A: Proxy Statements
-See Full Filing 
-January 2, 2026 at 12:00 AM UTC
-8-K: Corporate Changes & Voting Matters
-See Full Filing 
-December 5, 2025 at 12:00 AM UTC
-8-K: Corporate Changes & Voting Matters
-See Full Filing 
-October 31, 2025 at 12:00 AM UTC
-10-K: Periodic Financial Reports
-See Full Filing 
-###
+WASHINGTON, April 7 (Reuters) - Hyundai Motor said Tuesday ‌it is lifting ‌a halt on sales of ​recalled 2026 Palisade SUVs after finalizing a fix for a power seat ‌issue that ⁠resulted in the death of a ⁠two-year-old girl in Ohio.
+The Korean automaker said it ​finalized a ​software ​update for ‌2026 model year Palisade and Palisade Hybrid vehicles equipped with second‑ and third‑row power seats in ‌Limited and Calligraphy ​trims. The ​automaker ​halted sales in ‌mid-March and recalled 68,500 ​Palisade ​SUVs following the tragic incident. Once dealers ​complete ‌the software update, they ​can resume sales.
+(Reporting by ​David Shepardson)
+ * All-new PALISADE honored by the North American Car, Utility and Truck of the Year (NACTOY) jury, one of the most respected independent automotive accolades
+ * Flagship three-row SUV praised for its hybrid and ICE powertrain lineup, class-above interior space, and advanced safety and convenience technologies
+ * NACTOY awards judged by 50 leading automotive journalists from the U.S. and Canada, following extensive real-world evaluation
+SEOUL, South Korea and DETROIT, Jan. 14, 2026 /PRNewswire/ -- The all-new **Hyundai PALISADE** has been named the **2026 North American Utility Vehicle of the Year™** by the North American Car, Utility and Truck of the Year (**NACTOY**) jury, reaffirming Hyundai Motor's leadership in delivering family-focused SUVs with premium quality, advanced technology and everyday usability.
+The NACTOY awards are determined by a jury of 50 independent automotive journalists from the U.S. and Canada, representing print, digital, television, radio and social media. Vehicles are evaluated through an extensive process, including long-term driving, comparative testing, and detailed assessments of design, performance, innovation, safety and value.
+As Hyundai Motor's **flagship three-row SUV** , the all-new PALISADE was recognized for its **broad and versatile powertrain lineup** , including an efficient next-generation hybrid option alongside proven internal combustion engines. It also stood out for its spacious, premium interior, intuitive technology and comprehensive suite of family-oriented safety and convenience features.
+_"Palisade represents everything we strive to deliver at Hyundai — beautiful design, advanced technology, exceptional safety, and real value for families. To be recognized by 50 of North America's most respected automotive journalists as the best utility vehicle of the year is a tremendous honor. Thank you to our teams who made this possible, to our dealers who bring Palisade to life for customers every day, and to the NACTOY jury for this recognition."_ – **José Muñoz** , President and CEO, Hyundai Motor Company
+_"__Hyundai PALISADE defines the family vehicle for the 21st century._ _It's spacious, fun to drive and has a lot of technology._ _Congratulations on this impressive win_ _."_ – **Jeff Gilbert** , NACTOY President
+Founded in 1994, NACTOY is the longest-running new-vehicle awards program not affiliated with a single media outlet. Its independence, rigorous evaluation process, and diverse jury make the awards among the most credible and prestigious honors in the global automotive industry.
+More information about Hyundai Motor and its products can be found at: or Newsroom: Media Hub by Hyundai
+View original content to download multimedia:
+View original content to download multimedia: 
+WASHINGTON, Feb 26 (Reuters) - Ford Motor said Thursday it ‌is recalling 4.3 ‌million pickup trucks and SUVs in ​the United States because a software error may cause brakes not to function ‌and exterior ⁠lights to fail.
+The U.S. automaker said the ⁠recall covers the 2021 through 2026 F-150, 2022-2026 ​F-250 SD, ​Lincoln ​Navigator, Expedition, Maverick ‌along with some Ranger and E-Transit vehicles. When towing a trailer, a module may lose communication with ‌the vehicle, potentially ​causing a loss ​of ​brake and turn ‌signal lights, or a ​loss ​of brake function. Ford will update the vehicle ​software ‌to address the issue.
+(Reporting by ​David Shepardson, Editing by ​Louise Heavens)
+MILAN, April 20 (Reuters) - Hyundai will not manage to fully make up for lost sales in the Middle East due to the crisis in the region, ‌as manufacturing constraints will not allow the automaker to quickly reallocate sales to ‌other areas, its CEO said on Monday.
+Unveiling Hyundai's new Ioniq 3 EV model at the Milan Design Week in ​Italy, CEO Jose Munoz said the Middle East was the highest-margin market for the South Korean automaker, although not bringing "mass" profits.
+The Middle East conflict was having a significant impact on the carmaker because vehicles produced for the region cannot easily be redirected elsewhere, Hyundai's Spanish CEO said.
+"You cannot ‌just simply derive cars that ⁠are meant to go from one market to another," he said, also citing different specifications and regulatory requirements across regions.
+Hyundai is trying to offset ⁠some of the lost Middle East volumes by reallocating cars to other markets, but capacity constraints limit how much it can do in the short term.
+"I can tell you that there are many ​volunteers now ​that try to get those cars," he said. "One ​of the regions that can accommodate ‌is the North America region. But there are more as well."
+The world's third-largest automaker had been expanding steadily in the region before the crisis, with plans to grow sales in Gulf countries as well as parts of North Africa. Disruptions to logistics have compounded the hit to demand, Munoz said, making recovery dependent on how long the conflict lasts.
+"It needs some ‌time to do that. It's not as immediate as ​reroute the ships from one place to another," he ​said.
+Hyundai, which has been rolling out ​new electric and hybrid models globally, is also investing heavily in manufacturing ‌and supply chains in Europe and the ​United States, moves it ​has said are aimed at supporting long-term growth, backed by localised production, rather than responding to short-term shocks.
+Hyundai's Middle East strategy includes building a manufacturing plant Saudi Arabia, ​which was originally planned to ‌open by the fourth quarter of this year.
+"Hopefully we will still be able ​to open," Munoz said, adding that timeline now depended on developments in the ​region.
+(Reporting by Giulio Piovaccari. Editing by Jane Merriman)
+Each year, the Edmunds Top Rated Awards are bestowed on the best new cars, trucks and SUVs on sale. To win, a vehicle must rank at the top of its class based on Edmunds’ rigorous, independent testing and evaluation process. That means each winner has been tested at the Edmunds test track and thoroughly evaluated over many miles of real-world use.
+Edmunds divides the awards into six main categories: best car, best SUV and best truck, and electric versions of the same categories. This year’s Edmunds Top Rated Awards feature some repeat winners and newcomers, and each is a great choice if you’re planning to purchase a new vehicle. Note that all prices below include destination charges.
+Edmunds Top Rated Car: Honda Civic Hybrid
+The Honda Civic maintains its spot from last year as the Edmunds Top Rated Car for 2026. With its available hybrid powertrain, the Civic achieves up to an EPA-estimated 49 mpg in combined city/highway driving, which is excellent for a small car. On top of that, the Civic Hybrid provides quick acceleration, roomy seating, and an upscale interior design that’s nicer than what you’ll find in the competition. Another bonus: The Civic Hybrid is available as a sedan or as a hatchback with extra cargo space.
+Starting price for a Civic sedan with the hybrid engine: $30,590
+Edmunds Top Rated Electric Car: Tesla Model 3
+The significant updates to the Tesla Model 3 last year continue to make it a compelling choice and an Edmunds Top Rated winner. This small electric sedan boasts an affordable starting price, ample range and helpful technology features. In the independent Edmunds EV Range Test, the Model 3 Long Range All-Wheel Drive went 338 miles on a single charge, enough for days of worry-free commuting or even a road trip. Easy public charging at Tesla’s nationwide Supercharger high-speed charging network is another plus. Tesla’s Full Self-Driving (Supervised) is a nearly magical technology that steers the car through city streets like a robotic chauffeur.
+Starting price: $38,630
+Edmunds Top Rated SUV: Hyundai Palisade Hybrid
+The Hyundai Palisade is fully redesigned this year, and this midsize three-row SUV is a winner. Seating up to eight passengers and powered by either a gas or hybrid engine, the Palisade looks like a luxury SUV. The roomy and comfortable interior reinforces that impression with options like power-operated second-row seats that are hard to find even on luxury brands. Edmunds prefers the Palisade Hybrid. It’s more powerful and noticeably quicker than the standard gasoline version and gets up to an EPA-estimated 34 mpg combined, which is excellent fuel economy for a big family-hauling SUV.
+Starting price: $45,760
+Edmunds Top Rated Electric SUV: Hyundai Ioniq 5
+The Hyundai Ioniq 5 is an affordable five-seat electric SUV that appeals to nearly anyone looking for an EV. With models ranging from budget-friendly entry-level trims all the way up to the high-performance N and off-road XRT, the Ioniq 5 has a little something for every EV shopper. The comfortable and roomy interior feels high-tech and has plenty of room for passengers. The Ioniq 5 is also capable of very quick public fast charging, enabling you to spend less time at the charging station and more time driving.
+Starting price: $36,600
+Edmunds Top Rated Truck: Ford Maverick
+Ford once again earns an Edmunds Top Rated Truck award, but this time it’s the compact Ford Maverick taking home the trophy. The Maverick is much easier to maneuver around town than a full-size, or even a midsize, truck, and you have a choice between a fuel-sipping hybrid or a powerful turbocharged engine. It’s also respectably capable of truck stuff too. It has a small but useful cargo bed and a maximum towing capacity of 4,000 pounds. All-wheel drive is available, and specialty Maverick versions include the off-road-capable Tremor and the sporty Lobo.
+Starting price: $28,990
+Edmunds Top Rated Electric Truck: Rivian R1T
+Changes made to Rivian R1T electric pickup last year keep it at the top of our electric truck list. And why not? The styling is distinctive, and its stable handling and rapid acceleration can make you question whether you’re driving a pickup or a performance car. In the independent Edmunds EV Range Test, a dual-motor, Max battery-equipped R1T went 390 miles on a charge, excellent range for its class. Topping it off are outstanding truck virtues, from its off-road-ready all-wheel-drive system to its 11,000-pound maximum towing capacity to the clever cargo storage area between the cab and bed.
+Starting price: $74,885
+_____
+This story was provided to The Associated Press by the automotive website Edmunds. Keith Buglewicz is a contributor at Edmunds.
+Keith Buglewicz, The Associated Press
+NEW YORK (AP) — Ford has issued two recalls affecting nearly 1.74 million of its cars in the U.S., due to software issues that impact the vehicles' rearview camera displays.
+According to notices published by the National Highway Traffic Safety Administration this week, an internal component inside the infotainment system of certain 2021-2026 Ford Broncos and 2021-2024 Ford Edges may overheat and shut down — preventing the rearview image from displaying when drivers are going in reverse. Meanwhile, some 2020-2022 Ford Escapes and Lincoln Corsairs, as well as 2020-2024 Lincoln Aviators and Explorers, may show a flipped or inverted rearview image.
+The recalls cover 849,310 Broncos and Edges as well as 889,950 Escapes, Corsairs, Aviators and Explorers. Ford estimates that all of these vehicles have the defects. But the company is not aware of any injuries or accidents spanning from either recall, NHTSA documents show.
+Still, the NHTSA is warning drivers that both issues could increase crash risks.
+For impacted Bronco and Edge owners, Ford is offering a free software update for the vehicles' Accessory Protocol Interface Module (APIM). Owner-notification letters will be mailed out at the end of the month, with the fix available either at a dealer or through an "over-the-air” update.
+But a remedy is still under development for the recall impacting the Escapes, Corsairs, Aviators and Explorers, this week's recall announcement noted. In the meantime, interim letters to notify owners of the safety risks are set to be mailed out in the coming months.
+The Associated Press reached out to Michigan-based Ford for further comments on Saturday.
+For more information, drivers can visit the NHTSA website and Ford's online recall lookup using their vehicle's VIN number, or call the company's customer service line at 1-866-436-7332.
+The Associated Press
+April 8 (Reuters) - General Motors is recalling ‌271,770 cars ‌in the U.S. over ​an issue with the rearview camera, the U.S. National Highway ‌Traffic ⁠Safety Administration (NHTSA) said on Wednesday.
+Here are ⁠some details:
+* Recall includes Chevrolet ​Malibu sedans, ​NHTSA ​said. * The ‌rearview camera screen may display a distorted orblank image, reducing the driver's view ‌behind the ​vehicle,according to ​the ​NHTSA. * The ‌agency said that ​dealers ​will inspect and replace therearview camera.
+(Reporting ​by ‌Chandni Shah in ​Bengaluru; Editing by ​Rashmi Aich)
