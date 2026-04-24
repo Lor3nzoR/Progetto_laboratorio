@@ -1,5 +1,3 @@
-# backend/src/utilities/parserYahooFinance.py
-
 import re
 import requests
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode, BrowserConfig
