@@ -24,7 +24,7 @@ class ParserWikipedia(ParserBase):
     
             # excluded_tags invece di solito accetta una lista, 
             # ma se vuoi andare sul sicuro, controlla se l'errore persiste
-            excluded_tags=['table', 'style', 'script', 'nav', 'figure'],
+            excluded_tags=['style', 'script', 'nav', 'figure'],
 
             word_count_threshold= 0, #altrimenti potrebbe essere invalidante
     
@@ -43,7 +43,7 @@ class ParserWikipedia(ParserBase):
         
         # FILTRO SEZIONI
         #rimuoviamo sezioni indesiderrate
-        noise_sections = ["note", "bibliografia", "voci correlate", "altri progetti", "collegamenti esterni", "premi"]
+        noise_sections = ["note", "bibliografia", "voci correlate", "altri progetti", "collegamenti esterni"]
         text = clean_markdown_by_sections(text, noise_sections)
 
         # FILTRO RIGHE
@@ -69,7 +69,7 @@ class ParserWikipedia(ParserBase):
             (r'[ \t]{2,}', ' '),
 
             # display di formule nel modo corretto
-            (r'[^ \n\r\t][^\n{]{0,50}?\{\\displaystyle\s*(.*?)\s*\}', r'$\1$'),
+            (r'\{\\displaystyle\s+([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}', r'$\1$'),
 
             # Collassa 3 o più newline in massimo 2 (mantiene i paragrafi ma toglie il vuoto)
             (r'\n{3,}', '\n\n')
