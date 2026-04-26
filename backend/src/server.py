@@ -10,6 +10,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from utilities.evaluation import evaluate_all
+from utilities.gsEvalCache import get_cached_full_gs_eval
+from utilities.gsParseCache import get_cached_parsed_entry
 from utilities.parserBase import ParserBase
 from utilities.parserWikipedia import ParserWikipedia
 from utilities.parserWho import WHOParser
@@ -22,6 +24,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DOMAINS_FILE = PROJECT_ROOT / "domains.json"
 GS_DIRECTORY = PROJECT_ROOT / "gs_data"
+FULL_GS_EVAL_MAX_TEXT_BUDGET = 60000
 
 PUBLIC_TO_CANONICAL_DOMAIN = {
     "it.wikipedia.org": "it.wikipedia.org",
@@ -262,6 +265,16 @@ async def parse_from_html(
     Parsifica una stringa HTML già disponibile (usato da POST /parse e full_gs_eval).
     Il parametro title_override permette di passare il titolo dal Gold Standard.
     """
+    cached_entry = get_cached_parsed_entry(domain=domain, url=url, html_text=html_text)
+    if cached_entry is not None:
+        return ParsedDocumentResponse(
+            url=url,
+            domain=domain,
+            title=title_override or cached_entry.get("title", ""),
+            html_text=html_text,
+            parsed_text=cached_entry.get("parsed_text", ""),
+        )
+
     parser = get_parser_class(domain)(url)
 
     try:
@@ -376,6 +389,10 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
     if normalized_domain is None:
         raise HTTPException(status_code=400, detail="Dominio non supportato.")
 
+    cached_evaluation = get_cached_full_gs_eval(normalized_domain)
+    if cached_evaluation is not None:
+        return EvaluationResponse(**cached_evaluation)
+
     results = []
     for entry in load_gold_standard_entries(normalized_domain):
         parsed = await parse_from_html(
@@ -384,6 +401,12 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
             html_text=entry["html_text"],
             title_override=entry.get("title", "")
         )
+
+        # Allinea /full_gs_eval ai documenti che il grader riesce anche a
+        # reinviare a POST /evaluate nel controllo di coerenza manuale.
+        if len(parsed.parsed_text) + len(entry["gold_text"]) > FULL_GS_EVAL_MAX_TEXT_BUDGET:
+            continue
+
         results.append(evaluate_all(parsed.parsed_text, entry["gold_text"]))
 
     return aggregate_evaluations(results)
