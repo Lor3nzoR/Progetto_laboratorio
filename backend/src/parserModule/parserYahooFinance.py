@@ -342,7 +342,12 @@ class ParserYahooFinance(ParserBase):
             "parsed_text": self.clean_markdown(raw_md, page_type),
         }
 
-    async def parse_html(self, html_text: str, title_override: str = "") -> dict:
+    async def parse_html(
+        self,
+        html_text: str,
+        title_override: str = "",
+        crawler: AsyncWebCrawler | None = None,
+    ) -> dict:
         """
         Parsing da HTML gia disponibile usando la stessa logica di selezione
         impiegata dal parsing live, ma senza la fase rete/GDPR.
@@ -359,26 +364,32 @@ class ParserYahooFinance(ParserBase):
             )
         )
 
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            result = await crawler.arun(url=f"raw:{html_text}", config=html_config)
+        async def run_parse(active_crawler: AsyncWebCrawler) -> dict:
+            result = await active_crawler.arun(url=f"raw:{html_text}", config=html_config)
             if not result.success:
                 return {"error": "Crawl4AI non e riuscito a processare l'HTML Yahoo Finance."}
 
             raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
             if not raw_md.strip():
-                result = await crawler.arun(url=f"raw:{html_text}", config=fallback_config)
+                result = await active_crawler.arun(url=f"raw:{html_text}", config=fallback_config)
                 if not result.success:
                     return {"error": "Fallback Crawl4AI fallito su HTML Yahoo Finance."}
                 raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
 
-        page_title = title_override or self._extract_title_from_html(html_text, result.metadata)
-        return {
-            "url": self.url,
-            "domain": getattr(self, 'domain', 'finance.yahoo.com'),
-            "title": page_title,
-            "html_text": html_text,
-            "parsed_text": self.clean_markdown(raw_md, page_type),
-        }
+            page_title = title_override or self._extract_title_from_html(html_text, result.metadata)
+            return {
+                "url": self.url,
+                "domain": getattr(self, 'domain', 'finance.yahoo.com'),
+                "title": page_title,
+                "html_text": html_text,
+                "parsed_text": self.clean_markdown(raw_md, page_type),
+            }
+
+        if crawler is None:
+            async with AsyncWebCrawler(config=self.browser_config) as managed_crawler:
+                return await run_parse(managed_crawler)
+
+        return await run_parse(crawler)
 
     def clean_markdown(self, text: str, page_type: str = "") -> str:
         """
