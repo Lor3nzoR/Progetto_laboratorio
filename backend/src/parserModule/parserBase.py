@@ -44,7 +44,7 @@ class ParserBase(ABC):
         html_grezzo = Path(file_path).read_text(encoding="utf-8")
         return await self.parse_html(html_grezzo)
 
-    async def parse_html(self, html_text: str, title_override: str = "") -> dict:
+    async def parse_html(self, html_text: str, title_override: str = "", crawler: AsyncWebCrawler | None = None) -> dict:
         """
         Parsifica una stringa HTML già disponibile usando Crawl4AI.
         Questo metodo è il punto di ingresso per POST /parse e full_gs_eval.
@@ -62,8 +62,8 @@ class ParserBase(ABC):
             )
         )
 
-        async with AsyncWebCrawler(config=self.browser_config) as crawler:
-            result = await crawler.arun(url=f"raw:{html_text}", config=self.crawl_config)
+        async def run_parse(active_crawler: AsyncWebCrawler) -> dict:
+            result = await active_crawler.arun(url=f"raw:{html_text}", config=self.crawl_config)
 
             if not result.success:
                 return {"error": "Crawl4AI non è riuscito a processare l'HTML."}
@@ -72,22 +72,28 @@ class ParserBase(ABC):
 
             # Se la configurazione specifica non ha prodotto testo, si usa il fallback.
             if not raw_markdown.strip():
-                result = await crawler.arun(url=f"raw:{html_text}", config=fallback_config)
+                result = await active_crawler.arun(url=f"raw:{html_text}", config=fallback_config)
 
                 if not result.success:
                     return {"error": "Fallback Crawl4AI fallito."}
 
                 raw_markdown = result.markdown.raw_markdown or ""
 
-        cleaned_text = self.clean_markdown(raw_markdown)
+            cleaned_text = self.clean_markdown(raw_markdown)
 
-        return {
-            "url": self.url,
-            "domain": self.domain,
-            "title": title_override or result.metadata.get("title", ""),
-            "html_text": html_text,
-            "parsed_text": cleaned_text,
-        }
+            return {
+                "url": self.url,
+                "domain": self.domain,
+                "title": title_override or result.metadata.get("title", ""),
+                "html_text": html_text,
+                "parsed_text": cleaned_text,
+            }
+
+        if crawler is None:
+            async with AsyncWebCrawler(config=self.browser_config) as managed_crawler:
+                return await run_parse(managed_crawler)
+
+        return await run_parse(crawler)
 
     async def get_raw_html(self) -> str:
         """
@@ -133,3 +139,4 @@ class ParserBase(ABC):
         formattazione residua tipica del sito.
         """
         pass
+
