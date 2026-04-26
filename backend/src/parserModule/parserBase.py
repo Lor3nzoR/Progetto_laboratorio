@@ -11,6 +11,8 @@ Il flusso principale è:
                     e applica clean_markdown()
 """
 
+import os
+import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 from urllib.parse import urlparse
@@ -38,11 +40,15 @@ class ParserBase(ABC):
         """
         Scarica l'HTML dall'URL, lo salva in un file temporaneo e poi
         delega l'intera elaborazione a parse_html().
+        Il file temporaneo viene sempre eliminato dopo la lettura.
         Questo metodo è il punto di ingresso per GET /parse.
         """
         file_path = await self.get_raw_html()
-        html_grezzo = Path(file_path).read_text(encoding="utf-8")
-        return await self.parse_html(html_grezzo)
+        try:
+            html_grezzo = Path(file_path).read_text(encoding="utf-8")
+            return await self.parse_html(html_grezzo)
+        finally:
+            os.unlink(file_path)
 
     async def parse_html(self, html_text: str, title_override: str = "", crawler: AsyncWebCrawler | None = None) -> dict:
         """
@@ -96,23 +102,15 @@ class ParserBase(ABC):
         return await run_parse(crawler)
 
     async def get_raw_html(self) -> str:
-        """
-        Scarica l'HTML grezzo dall'URL e lo salva in backend/data/cache.html.
-        Restituisce il percorso assoluto del file salvato.
-        """
-        # __file__ → backend/src/utilities/parserBase.py → parents[2] → backend/
-        backend_root = Path(__file__).resolve().parents[2]
-        data_dir = backend_root / "data"
-        data_dir.mkdir(exist_ok=True)
-
-        cache_path = str(data_dir / "cache.html")
-
+        """Scarica l'HTML grezzo e lo salva in un file temporaneo unico per richiesta."""
         async with AsyncWebCrawler() as crawler:
             result = await crawler.arun(url=self.url)
-            with open(cache_path, "w", encoding="utf-8") as f:
-                f.write(result.html)
-
-        return cache_path
+        # delete=False perché il file viene letto da get_data() dopo la chiusura del with
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".html", encoding="utf-8", delete=False
+        ) as tmp:
+            tmp.write(result.html)
+            return tmp.name
 
     @abstractmethod
     def set_crawler(self) -> CrawlerRunConfig:
@@ -139,4 +137,3 @@ class ParserBase(ABC):
         formattazione residua tipica del sito.
         """
         pass
-

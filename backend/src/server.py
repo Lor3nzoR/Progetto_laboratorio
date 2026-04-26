@@ -1,4 +1,3 @@
-
 import asyncio
 import hashlib
 import json
@@ -20,7 +19,7 @@ from parserModule.parserYahooFinance import ParserYahooFinance
 from utilities.evaluation import evaluate_all
 
 
-# __file__ punta a backend/src/server.py â†’ parents[2] Ã¨ la root del progetto.
+# __file__ punta a backend/src/server.py → parents[2] è la root del progetto.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DOMAINS_FILE = PROJECT_ROOT / "domains.json"
@@ -28,44 +27,6 @@ GS_DIRECTORY = PROJECT_ROOT / "gs_data"
 PARSED_HTML_CACHE: dict[tuple[str, str, str, str], dict[str, Any]] = {}
 FULL_GS_EVAL_CACHE: dict[str, dict[str, Any]] = {}
 FULL_GS_EVAL_LOCKS: dict[str, asyncio.Lock] = {}
-PRECOMPUTED_FULL_GS_EVAL: dict[str, dict[str, Any]] = {
-    "it.wikipedia.org": {
-        "token_level_eval": {"precision": 0.8741, "recall": 0.8827, "f1": 0.8767},
-        "x_eval": {
-            "character_level_f1": 0.9583,
-            "jaccard_similarity": 0.8380,
-            "wer": 0.2036,
-            "rouge_l_f1": 0.8921,
-        },
-    },
-    "www.limesonline.com": {
-        "token_level_eval": {"precision": 0.9783, "recall": 0.9843, "f1": 0.9812},
-        "x_eval": {
-            "character_level_f1": 0.9878,
-            "jaccard_similarity": 0.9636,
-            "wer": 0.0337,
-            "rouge_l_f1": 0.9882,
-        },
-    },
-    "finance.yahoo.com": {
-        "token_level_eval": {"precision": 0.9734, "recall": 0.9860, "f1": 0.9786},
-        "x_eval": {
-            "character_level_f1": 0.9598,
-            "jaccard_similarity": 0.9608,
-            "wer": 0.0553,
-            "rouge_l_f1": 0.9796,
-        },
-    },
-    "www.who.int": {
-        "token_level_eval": {"precision": 0.9447, "recall": 0.9856, "f1": 0.9618},
-        "x_eval": {
-            "character_level_f1": 0.9545,
-            "jaccard_similarity": 0.9334,
-            "wer": 0.1210,
-            "rouge_l_f1": 0.9512,
-        },
-    },
-}
 
 PUBLIC_TO_CANONICAL_DOMAIN = {
     "it.wikipedia.org": "it.wikipedia.org",
@@ -151,7 +112,7 @@ app = FastAPI(
 def load_assigned_domains() -> list[str]:
     """
     Legge domains.json e restituisce la lista delle stringhe dei domini assegnati.
-    Il risultato Ã¨ memorizzato in cache: il file viene letto una sola volta.
+    Il risultato è memorizzato in cache: il file viene letto una sola volta.
     """
     if not DOMAINS_FILE.exists():
         return []
@@ -198,7 +159,7 @@ def canonicalize_domain(domain: str) -> str:
 def normalize_url_and_domain(url: str) -> tuple[str, str]:
     """
     Valida l'URL e verifica che appartenga a un dominio assegnato.
-    Solleva HTTPException 400 se l'URL non Ã¨ valido o il dominio non Ã¨ supportato.
+    Solleva HTTPException 400 se l'URL non è valido o il dominio non è supportato.
     """
     normalized_url = url.strip()
     parsed = urlparse(normalized_url)
@@ -235,7 +196,7 @@ def get_parser_class(domain: str) -> type[ParserBase]:
 def get_gs_file_path(domain: str) -> Path:
     """
     Converte il nome di un dominio nel percorso del file JSON del Gold Standard.
-    Es.: "it.wikipedia.org" â†’ gs_data/it_wikipedia_org_gs.json
+    Es.: "it.wikipedia.org" → gs_data/it_wikipedia_org_gs.json
     """
     canonical_domain = canonicalize_domain(domain)
     return GS_DIRECTORY / f"{canonical_domain.replace('.', '_')}_gs.json"
@@ -251,7 +212,7 @@ def make_html_cache_key(url: str, domain: str, html_text: str, title_override: s
 
 
 def store_bounded_cache_entry(cache: dict[Any, Any], key: Any, value: Any, maxsize: int) -> None:
-    """Inserisce una entry in cache mantenendo una dimensione massima semplice."""
+    """Cache FIFO con limite a maxsize entry: quando è piena rimuove la più vecchia."""
     cache[key] = value
     if len(cache) > maxsize:
         cache.pop(next(iter(cache)))
@@ -261,7 +222,7 @@ def store_bounded_cache_entry(cache: dict[Any, Any], key: Any, value: Any, maxsi
 def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
     """
     Carica tutte le entry del Gold Standard per il dominio indicato.
-    Il risultato Ã¨ memorizzato in cache (un entry per dominio, 4 domini in totale):
+    Il risultato è memorizzato in cache (un entry per dominio, 4 domini in totale):
     i file GS non cambiano durante il ciclo di vita del server.
     Solleva HTTPException 404 se il file non esiste.
     """
@@ -274,14 +235,13 @@ def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
         )
 
     content = json.loads(gs_file.read_text(encoding="utf-8"))
-    # Il file puÃ² contenere un oggetto singolo o una lista di oggetti.
     return [content] if isinstance(content, dict) else content
 
 
 def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
     """
     Cerca nel Gold Standard l'entry con l'URL esatto fornito.
-    Solleva HTTPException 404 se l'URL non Ã¨ presente nel GS.
+    Solleva HTTPException 404 se l'URL non è presente nel GS.
     """
     for entry in load_gold_standard_entries(domain):
         if entry.get("url") == url:
@@ -289,14 +249,14 @@ def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
 
     raise HTTPException(
         status_code=404,
-        detail="L'URL richiesto non Ã¨ presente nel Gold Standard."
+        detail="L'URL richiesto non è presente nel Gold Standard."
     )
 
 
 async def parse_from_url(url: str, domain: str) -> ParsedDocumentResponse:
     """
     Scarica la pagina dall'URL e la parsifica con il parser del dominio.
-    Solleva HTTPException 502 se la pagina non Ã¨ raggiungibile o il parsing fallisce.
+    Solleva HTTPException 502 se la pagina non è raggiungibile o il parsing fallisce.
     """
     parser = get_parser_class(domain)(url)
 
@@ -320,7 +280,7 @@ async def parse_from_html(
     crawler: AsyncWebCrawler | None = None,
 ) -> ParsedDocumentResponse:
     """
-    Parsifica una stringa HTML giÃ  disponibile (usato da POST /parse e full_gs_eval).
+    Parsifica una stringa HTML già disponibile (usato da POST /parse e full_gs_eval).
     Il parametro title_override permette di passare il titolo dal Gold Standard.
     """
     cache_key = make_html_cache_key(url=url, domain=domain, html_text=html_text, title_override=title_override)
@@ -351,11 +311,11 @@ async def parse_from_html(
 
 def aggregate_evaluations(results: list[dict[str, Any]]) -> EvaluationResponse:
     """
-    Calcola la media aritmetica di tutte le metriche su piÃ¹ documenti.
+    Calcola la media aritmetica di tutte le metriche su più documenti.
     Usata da GET /full_gs_eval per restituire un valore aggregato per dominio.
     """
     if not results:
-        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio Ã¨ vuoto.")
+        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio è vuoto.")
 
     token_level_eval = {
         metric: round(mean(r["token_level_eval"][metric] for r in results), 4)
@@ -403,7 +363,7 @@ async def parse_html_document(payload: ParseFromHtmlRequest) -> ParsedDocumentRe
     normalized_url, domain = normalize_url_and_domain(payload.url)
 
     if not payload.html_text.strip():
-        raise HTTPException(status_code=400, detail="Il campo html_text non puÃ² essere vuoto.")
+        raise HTTPException(status_code=400, detail="Il campo html_text non può essere vuoto.")
 
     return await parse_from_html(url=normalized_url, domain=domain, html_text=payload.html_text)
 
@@ -435,7 +395,7 @@ async def get_full_gold_standard(domain: str) -> FullGoldStandardResponse:
 
 @app.post("/evaluate", response_model=EvaluationResponse, tags=["evaluation"])
 async def evaluate_document(payload: EvaluationRequest) -> EvaluationResponse:
-    """Confronta parsed_text con gold_text e restituisce le metriche di qualitÃ ."""
+    """Confronta parsed_text con gold_text e restituisce le metriche di qualità."""
     return EvaluationResponse(**evaluate_all(payload.parsed_text, payload.gold_text))
 
 
@@ -448,10 +408,6 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
     normalized_domain = match_assigned_domain(domain)
     if normalized_domain is None:
         raise HTTPException(status_code=400, detail="Dominio non supportato.")
-
-    precomputed = PRECOMPUTED_FULL_GS_EVAL.get(normalized_domain)
-    if precomputed is not None:
-        return EvaluationResponse(**precomputed)
 
     cached_eval = FULL_GS_EVAL_CACHE.get(normalized_domain)
     if cached_eval is not None:
@@ -486,5 +442,3 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
         aggregated_payload = aggregated.model_dump() if hasattr(aggregated, "model_dump") else aggregated.dict()
         store_bounded_cache_entry(FULL_GS_EVAL_CACHE, normalized_domain, aggregated_payload, maxsize=4)
         return EvaluationResponse(**aggregated_payload)
-
-

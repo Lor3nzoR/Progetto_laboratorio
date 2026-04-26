@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any
 
 import requests
@@ -18,6 +19,8 @@ app = FastAPI(
     description="Interfaccia web per il parsing e la valutazione dei domini assegnati.",
     version="1.1.0",
 )
+
+_CTX_TTL = 60.0
 
 
 def backend_request(
@@ -57,11 +60,11 @@ def backend_request(
 
 
 def load_page_context() -> dict[str, Any]:
-    """
-    Recupera domini e URL del Gold Standard dal backend per popolare la UI.
-    Gli errori dei singoli domini vengono silenziati: la UI si degrada
-    mostrando solo i domini disponibili.
-    """
+    """Carica domini e GS dal backend; risultato in cache per 60 secondi."""
+    now = time.monotonic()
+    if load_page_context.cache and (now - load_page_context.ts) < _CTX_TTL:
+        return load_page_context.cache
+
     domains_response, domains_error = backend_request("GET", "/domains")
     domains = domains_response.get("domains", []) if domains_response else []
 
@@ -73,12 +76,18 @@ def load_page_context() -> dict[str, Any]:
 
     gs_entries.sort(key=lambda entry: entry.get("url", ""))
 
-    return {
+    result = {
         "backend_url":   BACKEND_URL,
         "domains":       domains,
         "domains_error": domains_error,
         "gs_entries":    gs_entries,
     }
+    load_page_context.cache = result
+    load_page_context.ts = now
+    return result
+
+load_page_context.cache = {}
+load_page_context.ts = 0.0
 
 
 @app.get("/", response_class=HTMLResponse)
