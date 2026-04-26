@@ -172,6 +172,53 @@ class ParserYahooFinance(ParserBase):
             """
         return None
 
+    def _build_run_config(self, page_type: str, *, for_raw_html: bool) -> CrawlerRunConfig:
+        """
+        Costruisce la configurazione Crawl4AI condivisa tra parsing live e
+        parsing da HTML gia disponibile.
+        """
+        css_selector = self._build_css_selector(page_type)
+        config_kwargs = dict(
+            cache_mode=CacheMode.BYPASS,
+            excluded_selector=self._build_excluded_selector(page_type),
+            excluded_tags=["script", "style", "iframe", "noscript"],
+            word_count_threshold=0,
+            markdown_generator=DefaultMarkdownGenerator(
+                options={"ignore_links": True, "ignore_images": True, "body_width": 0, "ignore_tables": True}
+            ),
+        )
+
+        if css_selector:
+            config_kwargs["css_selector"] = css_selector
+
+        js_cleanup = self._build_js_cleanup(page_type)
+        if js_cleanup:
+            config_kwargs["js_code"] = js_cleanup
+
+        if not for_raw_html:
+            config_kwargs["wait_until"] = "domcontentloaded"
+            config_kwargs["delay_before_return_html"] = 12.0
+            config_kwargs["page_timeout"] = 60000
+
+            # Ogni layout espone il contenuto utile con tempi diversi:
+            # aspettiamo un segnale concreto solo dove serve.
+            if page_type == "markets":
+                config_kwargs["wait_for"] = "css:table td:not(:empty)"
+            elif page_type == "article":
+                config_kwargs["wait_for"] = "css:[data-testid='article-body']"
+
+        return CrawlerRunConfig(**config_kwargs)
+
+    @staticmethod
+    def _extract_title_from_html(html: str, metadata: dict | None) -> str:
+        """
+        Estrae un titolo leggibile privilegiando l'H1 di copertina quando presente.
+        """
+        soup = BeautifulSoup(html, "html.parser")
+        page_title = metadata.get("title", "") if metadata else ""
+        cover_title_tag = soup.find("h1", class_=lambda c: c and "cover-title" in c)
+        return cover_title_tag.get_text(strip=True) if cover_title_tag else page_title
+
     def _get_consent_cookies(self) -> list[dict]:
         """
         Usa requests per:
@@ -269,34 +316,7 @@ class ParserYahooFinance(ParserBase):
             storage_state={"cookies": consent_cookies, "origins": []},
         )
 
-        config_kwargs = dict(
-            cache_mode=CacheMode.BYPASS,
-            wait_until="domcontentloaded",
-            delay_before_return_html=12.0,
-            page_timeout=60000,
-            excluded_selector=self._build_excluded_selector(page_type),
-            excluded_tags=["script", "style", "iframe", "noscript"],
-            word_count_threshold=0,
-            markdown_generator=DefaultMarkdownGenerator(
-                options={"ignore_links": True, "ignore_images": True, "body_width": 0, "ignore_tables": True}
-            ),
-        )
-
-        if css_selector:
-            config_kwargs["css_selector"] = css_selector
-
-        js_cleanup = self._build_js_cleanup(page_type)
-        if js_cleanup:
-            config_kwargs["js_code"] = js_cleanup
-
-        # Ogni layout espone il contenuto utile con tempi diversi:
-        # aspettiamo un segnale concreto solo dove serve.
-        if page_type == "markets":
-            config_kwargs["wait_for"] = "css:table td:not(:empty)"
-        elif page_type == "article":
-            config_kwargs["wait_for"] = "css:[data-testid='article-body']"
-
-        live_config = CrawlerRunConfig(**config_kwargs)
+        live_config = self._build_run_config(page_type, for_raw_html=False)
 
         async with AsyncWebCrawler(config=browser_with_cookies) as crawler:
             result = await crawler.arun(url=self.url, config=live_config)
@@ -312,16 +332,51 @@ class ParserYahooFinance(ParserBase):
         if not raw_md.strip():
             return {"error": "Nessun testo estratto dalla pagina."}
 
-        soup = BeautifulSoup(html, "html.parser")
-        page_title = result.metadata.get("title", "") if result.metadata else ""
-        cover_title_tag = soup.find("h1", class_=lambda c: c and "cover-title" in c)
-        article_title = cover_title_tag.get_text(strip=True) if cover_title_tag else page_title
+        article_title = self._extract_title_from_html(html, result.metadata)
 
         return {
             "url": self.url,
             "domain": getattr(self, 'domain', 'finance.yahoo.com'),
             "title": article_title,
             "html_text": html,
+            "parsed_text": self.clean_markdown(raw_md, page_type),
+        }
+
+    async def parse_html(self, html_text: str, title_override: str = "") -> dict:
+        """
+        Parsing da HTML gia disponibile usando la stessa logica di selezione
+        impiegata dal parsing live, ma senza la fase rete/GDPR.
+        """
+        page_type = self._get_page_type()
+        html_config = self._build_run_config(page_type, for_raw_html=True)
+
+        fallback_config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            excluded_tags=["script", "style", "nav", "footer", "noscript"],
+            word_count_threshold=0,
+            markdown_generator=DefaultMarkdownGenerator(
+                options={"ignore_links": True, "ignore_images": True, "body_width": 0}
+            )
+        )
+
+        async with AsyncWebCrawler(config=self.browser_config) as crawler:
+            result = await crawler.arun(url=f"raw:{html_text}", config=html_config)
+            if not result.success:
+                return {"error": "Crawl4AI non e riuscito a processare l'HTML Yahoo Finance."}
+
+            raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
+            if not raw_md.strip():
+                result = await crawler.arun(url=f"raw:{html_text}", config=fallback_config)
+                if not result.success:
+                    return {"error": "Fallback Crawl4AI fallito su HTML Yahoo Finance."}
+                raw_md = (result.markdown.raw_markdown if result.markdown else "") or ""
+
+        page_title = title_override or self._extract_title_from_html(html_text, result.metadata)
+        return {
+            "url": self.url,
+            "domain": getattr(self, 'domain', 'finance.yahoo.com'),
+            "title": page_title,
+            "html_text": html_text,
             "parsed_text": self.clean_markdown(raw_md, page_type),
         }
 
