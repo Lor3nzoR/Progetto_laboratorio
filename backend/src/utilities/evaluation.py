@@ -3,6 +3,17 @@ from collections import Counter
 import jiwer
 from rouge_score import rouge_scorer
 
+def sanitize_text_for_eval(text: str) -> str:
+    if not text:
+        return ""
+    # Rimuove caratteri invisibili
+    text = re.sub(r'[\u200B\u200C\u200D\uFEFF\u2060]+', '', text)
+    # Normalizza i trattini speciali
+    text = re.sub(r'[\u2011]', '-', text)
+    # Normalizza gli spazi non spezzabili
+    text = re.sub(r'\xa0', ' ', text)
+    return text
+
 def remove_markdown(text: str) -> str:
     """
     Rimuove la formattazione markdown. Al fine di valutare solo il contenuto 
@@ -57,9 +68,7 @@ def token_level_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     Calcola l'intersezione pura dei set di parole, ignorando l'ordine.
     Implementazione richiesta dalle specifiche del progetto.
     """
-    cleaned_parsed: str = remove_markdown(parsed_text)
-
-    extracted_tokens: set[str] = get_token_set(cleaned_parsed)
+    extracted_tokens: set[str] = get_token_set(parsed_text)
     gs_tokens: set[str] = get_token_set(gold_text)
 
     # Gestione edge-cases: testi vuoti.
@@ -95,11 +104,9 @@ def character_level_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     microscopico (es. tag HTML residui, punteggiatura spuria), garantendo 
     un'esecuzione lineare O(N).
     """
-    cleaned_parsed: str = remove_markdown(parsed_text)
-    
     # Rimuoviamo gli spazi per concentrare il calcolo solo sul contenuto 
     # e sulla punteggiatura.
-    cleaned_parsed = cleaned_parsed.replace(" ", "")
+    cleaned_parsed = parsed_text.replace(" ", "")
     gold_text_nospaces = gold_text.replace(" ", "")
 
     # Passando la stringa a Counter, Python crea dietro le quinte una hash map 
@@ -142,9 +149,7 @@ def jaccard_similarity(parsed_text: str, gold_text: str) -> float:
     Fornisce un singolo valore in [0, 1] utile per valutare la 
     sovrapposizione globale.
     """
-    cleaned_parsed: str = remove_markdown(parsed_text)
-    
-    extracted_tokens: set[str] = get_token_set(cleaned_parsed)
+    extracted_tokens: set[str] = get_token_set(parsed_text)
     gs_tokens: set[str] = get_token_set(gold_text)
 
     if not extracted_tokens and not gs_tokens: 
@@ -166,9 +171,7 @@ def word_error_rate(parsed_text: str, gold_text: str) -> float:
     Sfrutta la libreria standard 'jiwer'.
     Minore è il valore, più fedele è l'estrazione.
     """
-    cleaned_parsed: str = remove_markdown(parsed_text)
-    
-    str_parsed: str = get_token_string(cleaned_parsed)
+    str_parsed: str = get_token_string(parsed_text)
     str_gold: str = get_token_string(gold_text)
 
     # Edge cases: Se il Gold Standard è vuoto, restituiamo il numero 
@@ -189,9 +192,7 @@ def rouge_l_eval(parsed_text: str, gold_text: str) -> dict[str, float]:
     Valuta l'integrità strutturale del testo estratto calcolando la 
     Longest Common Subsequence (LCS). Utilizza il pacchetto 'rouge-score'.
     """
-    cleaned_parsed: str = remove_markdown(parsed_text)
-    
-    str_parsed: str = get_token_string(cleaned_parsed)
+    str_parsed: str = get_token_string(parsed_text)
     str_gold: str = get_token_string(gold_text)
 
     if not str_parsed and not str_gold:
@@ -219,15 +220,17 @@ def evaluate_all(parsed_text: str, gold_text: str) -> dict:
     Costruisce e formatta il dizionario finale richiesto dall'endpoint 
     POST /evaluate. Aggiunge le metriche opzionali nel campo 'x_eval'.
     """
+    clean_parsed = remove_markdown(sanitize_text_for_eval(parsed_text))
+    clean_gold = sanitize_text_for_eval(gold_text)
 
     return {
-        "token_level_eval": token_level_eval(parsed_text, gold_text),
+        "token_level_eval": token_level_eval(clean_parsed, clean_gold),
         "x_eval": {
             "character_level_f1": character_level_eval(
-                parsed_text, gold_text
+                clean_parsed, clean_gold
             )["f1"],
-            "jaccard_similarity": jaccard_similarity(parsed_text, gold_text),
-            "wer": word_error_rate(parsed_text, gold_text),
-            "rouge_l_f1": rouge_l_eval(parsed_text, gold_text)["f1"]
+            "jaccard_similarity": jaccard_similarity(clean_parsed, clean_gold),
+            "wer": word_error_rate(clean_parsed, clean_gold),
+            "rouge_l_f1": rouge_l_eval(clean_parsed, clean_gold)["f1"]
         }
     }

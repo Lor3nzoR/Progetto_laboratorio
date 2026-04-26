@@ -260,7 +260,7 @@ class ParserYahooFinance(ParserBase):
             excluded_tags=["script", "style", "iframe", "noscript"],
             word_count_threshold=0,
             markdown_generator=DefaultMarkdownGenerator(
-                options={"ignore_links": True, "ignore_images": True, "body_width": 0}
+                options={"ignore_links": True, "ignore_images": True, "body_width": 0, "ignore_tables": True}
             ),
         )
 
