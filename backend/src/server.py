@@ -34,9 +34,9 @@ PUBLIC_TO_CANONICAL_DOMAIN = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Modelli Pydantic
-# ---------------------------------------------------------------------------
+
+# Modelli 
+
 
 class ParsedDocumentResponse(BaseModel):
     """Risposta degli endpoint GET /parse e POST /parse."""
