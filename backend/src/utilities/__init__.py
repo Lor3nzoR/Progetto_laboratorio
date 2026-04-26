@@ -1,0 +1,1 @@
+"""funzioni ausiliarie e di valutazione."""
