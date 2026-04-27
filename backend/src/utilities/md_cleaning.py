@@ -1,5 +1,5 @@
 """
-Primitive di pulizia markdown riutilizzate dai parser di dominio.
+Primitive di pulizia markdown utilizzate dai parser di dominio.
 
 Il modulo fornisce helper progressivi:
 - rimozione di sezioni intere tramite blacklist di titoli;
@@ -88,8 +88,9 @@ def clean_markdown_regex(raw_markdown: str, regex: Iterable[tuple[str, str]]) ->
     return text.strip()
 
 
-def clean_markdown_by_section_title(text: str, titles_to_remove: list[str]) -> str:
+def clean_markdown_by_section_aggressive(text: str, titles_to_remove: list[str]) -> str:
     """
+    Pensata per casi estremi di markdown molto rumoroso, come quelli di Yahoo Finance.
     Rimuove blocchi markdown identificati da un titolo `#`-`######`.
     Una volta intercettato un titolo rumoroso, scarta tutto fino al prossimo
     heading di livello pari o superiore.

@@ -21,7 +21,7 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig, CacheMode, BrowserConfig
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
 from .parserBase import ParserBase
-from utilities.md_cleaning import clean_markdown_by_section_title, clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
+from utilities.md_cleaning import clean_markdown_by_section_aggressive, clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
 
 
 class ParserYahooFinance(ParserBase):
@@ -212,7 +212,10 @@ class ParserYahooFinance(ParserBase):
     @staticmethod
     def _extract_title_from_html(html: str, metadata: dict | None) -> str:
         """
-        Estrae un titolo leggibile privilegiando l'H1 di copertina quando presente.
+        Estrae il titolo dell'articolo dall'HTML grezzo.
+        Yahoo Finance mette il titolo visibile in un h1.cover-title nel corpo
+        della pagina, non nel tag title standard — quindi i metadati di Crawl4AI
+        non lo contengono. Se il tag non c'è, fallback sui metadati normali.
         """
         soup = BeautifulSoup(html, "html.parser")
         page_title = metadata.get("title", "") if metadata else ""
@@ -417,7 +420,7 @@ class ParserYahooFinance(ParserBase):
 
         text = clean_markdown_by_sections(text, noise_sections)
 
-        text = clean_markdown_by_section_title(text, titles_to_remove=["related videos", "related news", "yahoo finance video", "recent news"])
+        text = clean_markdown_by_section_aggressive(text, titles_to_remove=["related videos", "related news", "yahoo finance video", "recent news"])
 
         noise_indicators = [
             "data provided by", "all rights reserved", "sign in to",
