@@ -178,7 +178,9 @@ def jaccard_similarity(parsed_text: str, gold_text: str) -> float:
 
 def word_error_rate(parsed_text: str, gold_text: str) -> float:
     """
-    Misura la distanza di Levenshtein a livello di parola tramite jiwer.
+    Conta quante parole bisogna aggiungere, togliere o sostituire per trasformare
+    il testo estratto nel gold standard, normalizzato sulla lunghezza del riferimento.
+    A differenza delle metriche insiemistiche, e sensibile all'ordine delle parole.
     Minore e il valore, piu fedele e l'estrazione.
     """
     str_parsed: str = get_token_string(parsed_text)
