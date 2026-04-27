@@ -17,6 +17,8 @@ ma nei richiami editoriali e nelle note numerate disperse nel testo.
 
 from crawl4ai import CrawlerRunConfig, CacheMode
 from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
+import re
+import html
 
 from .parserBase import ParserBase
 from utilities.md_cleaning import clean_markdown_by_sections, clean_markdown_noise, clean_markdown_regex
@@ -46,6 +48,45 @@ class ParserWikipedia(ParserBase):
             word_count_threshold=0,
             markdown_generator=md_generator,
         )
+    
+    def _preprocess_math(self, html_text: str) -> str:
+        """
+        Sostituisce ogni blocco <math>...</math> con il solo contenuto
+        dell'annotation LaTeX, rimuovendo eventuali virgolette esterne.
+        Serve per mostrare le formule lasciando solo l'annotation della formula.
+        """
+
+        def replace_math(match: re.Match) -> str:
+            math_block = match.group(0)
+
+            annotation_match = re.search(
+                r'<annotation[^>]*encoding=["\']application/x-tex["\'][^>]*>(.*?)</annotation>',
+                math_block,
+                flags=re.DOTALL | re.IGNORECASE
+            )
+
+            if not annotation_match:
+                return ""
+
+            latex = annotation_match.group(1).strip()
+            latex = html.unescape(latex)
+
+            # Rimuove solo le virgolette esterne, se presenti
+            if len(latex) >= 2 and latex[0] == '"' and latex[-1] == '"':
+                latex = latex[1:-1]
+
+            return latex
+
+        return re.sub(
+            r'<math[^>]*>.*?</math>',
+            replace_math,
+            html_text,
+            flags=re.DOTALL | re.IGNORECASE
+        )
+
+    async def parse_html(self, html_text: str, title_override: str = "", crawler=None) -> dict:
+        html_text = self._preprocess_math(html_text)
+        return await super().parse_html(html_text, title_override, crawler)
 
     def clean_markdown(self, text: str) -> str:
         """
