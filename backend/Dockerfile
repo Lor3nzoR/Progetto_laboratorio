@@ -25,4 +25,4 @@ COPY backend/src         /project/backend/src
 
 EXPOSE 8003
 
-CMD ["uvicorn", "server:app", "--app-dir", "/project/backend/src", "--host", "0.0.0.0", "--port", "8003", "--workers", "2"]
+CMD ["uvicorn", "server:app", "--app-dir", "/project/backend/src", "--host", "0.0.0.0", "--port", "8003"]

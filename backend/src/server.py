@@ -1,5 +1,4 @@
-import asyncio
-import hashlib
+
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -7,7 +6,6 @@ from statistics import mean
 from typing import Any
 from urllib.parse import urlparse
 
-from crawl4ai import AsyncWebCrawler
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
@@ -19,14 +17,11 @@ from parserModule.parserYahooFinance import ParserYahooFinance
 from utilities.evaluation import evaluate_all
 
 
-# __file__ punta a backend/src/server.py → parents[2] è la root del progetto.
+# __file__ punta a backend/src/server.py â†’ parents[2] Ã¨ la root del progetto.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DOMAINS_FILE = PROJECT_ROOT / "domains.json"
 GS_DIRECTORY = PROJECT_ROOT / "gs_data"
-PARSED_HTML_CACHE: dict[tuple[str, str, str, str], dict[str, Any]] = {}
-FULL_GS_EVAL_CACHE: dict[str, dict[str, Any]] = {}
-FULL_GS_EVAL_LOCKS: dict[str, asyncio.Lock] = {}
 
 PUBLIC_TO_CANONICAL_DOMAIN = {
     "it.wikipedia.org": "it.wikipedia.org",
@@ -112,7 +107,7 @@ app = FastAPI(
 def load_assigned_domains() -> list[str]:
     """
     Legge domains.json e restituisce la lista delle stringhe dei domini assegnati.
-    Il risultato è memorizzato in cache: il file viene letto una sola volta.
+    Il risultato Ã¨ memorizzato in cache: il file viene letto una sola volta.
     """
     if not DOMAINS_FILE.exists():
         return []
@@ -159,7 +154,7 @@ def canonicalize_domain(domain: str) -> str:
 def normalize_url_and_domain(url: str) -> tuple[str, str]:
     """
     Valida l'URL e verifica che appartenga a un dominio assegnato.
-    Solleva HTTPException 400 se l'URL non è valido o il dominio non è supportato.
+    Solleva HTTPException 400 se l'URL non Ã¨ valido o il dominio non Ã¨ supportato.
     """
     normalized_url = url.strip()
     parsed = urlparse(normalized_url)
@@ -196,33 +191,17 @@ def get_parser_class(domain: str) -> type[ParserBase]:
 def get_gs_file_path(domain: str) -> Path:
     """
     Converte il nome di un dominio nel percorso del file JSON del Gold Standard.
-    Es.: "it.wikipedia.org" → gs_data/it_wikipedia_org_gs.json
+    Es.: "it.wikipedia.org" â†’ gs_data/it_wikipedia_org_gs.json
     """
     canonical_domain = canonicalize_domain(domain)
     return GS_DIRECTORY / f"{canonical_domain.replace('.', '_')}_gs.json"
-
-
-def make_html_cache_key(url: str, domain: str, html_text: str, title_override: str) -> tuple[str, str, str, str]:
-    """
-    Costruisce una chiave stabile per il caching del parsing HTML.
-    L'HTML viene identificato tramite hash per evitare chiavi troppo grandi.
-    """
-    html_sha1 = hashlib.sha1(html_text.encode("utf-8")).hexdigest()
-    return (canonicalize_domain(domain), url, title_override, html_sha1)
-
-
-def store_bounded_cache_entry(cache: dict[Any, Any], key: Any, value: Any, maxsize: int) -> None:
-    """Cache FIFO con limite a maxsize entry: quando è piena rimuove la più vecchia."""
-    cache[key] = value
-    if len(cache) > maxsize:
-        cache.pop(next(iter(cache)))
 
 
 @lru_cache(maxsize=4)
 def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
     """
     Carica tutte le entry del Gold Standard per il dominio indicato.
-    Il risultato è memorizzato in cache (un entry per dominio, 4 domini in totale):
+    Il risultato Ã¨ memorizzato in cache (un entry per dominio, 4 domini in totale):
     i file GS non cambiano durante il ciclo di vita del server.
     Solleva HTTPException 404 se il file non esiste.
     """
@@ -235,13 +214,14 @@ def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
         )
 
     content = json.loads(gs_file.read_text(encoding="utf-8"))
+    # Il file puÃ² contenere un oggetto singolo o una lista di oggetti.
     return [content] if isinstance(content, dict) else content
 
 
 def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
     """
     Cerca nel Gold Standard l'entry con l'URL esatto fornito.
-    Solleva HTTPException 404 se l'URL non è presente nel GS.
+    Solleva HTTPException 404 se l'URL non Ã¨ presente nel GS.
     """
     for entry in load_gold_standard_entries(domain):
         if entry.get("url") == url:
@@ -249,14 +229,14 @@ def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
 
     raise HTTPException(
         status_code=404,
-        detail="L'URL richiesto non è presente nel Gold Standard."
+        detail="L'URL richiesto non Ã¨ presente nel Gold Standard."
     )
 
 
 async def parse_from_url(url: str, domain: str) -> ParsedDocumentResponse:
     """
     Scarica la pagina dall'URL e la parsifica con il parser del dominio.
-    Solleva HTTPException 502 se la pagina non è raggiungibile o il parsing fallisce.
+    Solleva HTTPException 502 se la pagina non Ã¨ raggiungibile o il parsing fallisce.
     """
     parser = get_parser_class(domain)(url)
 
@@ -277,33 +257,20 @@ async def parse_from_html(
     domain: str,
     html_text: str,
     title_override: str = "",
-    crawler: AsyncWebCrawler | None = None,
 ) -> ParsedDocumentResponse:
     """
-    Parsifica una stringa HTML già disponibile (usato da POST /parse e full_gs_eval).
+    Parsifica una stringa HTML giÃ  disponibile (usato da POST /parse e full_gs_eval).
     Il parametro title_override permette di passare il titolo dal Gold Standard.
     """
-    cache_key = make_html_cache_key(url=url, domain=domain, html_text=html_text, title_override=title_override)
-    cached = PARSED_HTML_CACHE.get(cache_key)
+    parser = get_parser_class(domain)(url)
 
-    if cached is not None:
-        data = dict(cached)
-    else:
-        parser = get_parser_class(domain)(url)
+    try:
+        data = await parser.parse_html(html_text=html_text, title_override=title_override)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Parsing HTML fallito: {exc}") from exc
 
-        try:
-            data = await parser.parse_html(
-                html_text=html_text,
-                title_override=title_override,
-                crawler=crawler,
-            )
-        except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"Parsing HTML fallito: {exc}") from exc
-
-        if "error" in data:
-            raise HTTPException(status_code=502, detail="Parsing HTML fallito.")
-
-        store_bounded_cache_entry(PARSED_HTML_CACHE, cache_key, dict(data), maxsize=128)
+    if "error" in data:
+        raise HTTPException(status_code=502, detail="Parsing HTML fallito.")
 
     data["domain"] = domain
     return ParsedDocumentResponse(**data)
@@ -311,11 +278,11 @@ async def parse_from_html(
 
 def aggregate_evaluations(results: list[dict[str, Any]]) -> EvaluationResponse:
     """
-    Calcola la media aritmetica di tutte le metriche su più documenti.
+    Calcola la media aritmetica di tutte le metriche su piÃ¹ documenti.
     Usata da GET /full_gs_eval per restituire un valore aggregato per dominio.
     """
     if not results:
-        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio è vuoto.")
+        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio Ã¨ vuoto.")
 
     token_level_eval = {
         metric: round(mean(r["token_level_eval"][metric] for r in results), 4)
@@ -363,7 +330,7 @@ async def parse_html_document(payload: ParseFromHtmlRequest) -> ParsedDocumentRe
     normalized_url, domain = normalize_url_and_domain(payload.url)
 
     if not payload.html_text.strip():
-        raise HTTPException(status_code=400, detail="Il campo html_text non può essere vuoto.")
+        raise HTTPException(status_code=400, detail="Il campo html_text non puÃ² essere vuoto.")
 
     return await parse_from_html(url=normalized_url, domain=domain, html_text=payload.html_text)
 
@@ -395,7 +362,7 @@ async def get_full_gold_standard(domain: str) -> FullGoldStandardResponse:
 
 @app.post("/evaluate", response_model=EvaluationResponse, tags=["evaluation"])
 async def evaluate_document(payload: EvaluationRequest) -> EvaluationResponse:
-    """Confronta parsed_text con gold_text e restituisce le metriche di qualità."""
+    """Confronta parsed_text con gold_text e restituisce le metriche di qualitÃ ."""
     return EvaluationResponse(**evaluate_all(payload.parsed_text, payload.gold_text))
 
 
@@ -409,36 +376,14 @@ async def evaluate_full_gold_standard(domain: str) -> EvaluationResponse:
     if normalized_domain is None:
         raise HTTPException(status_code=400, detail="Dominio non supportato.")
 
-    cached_eval = FULL_GS_EVAL_CACHE.get(normalized_domain)
-    if cached_eval is not None:
-        return EvaluationResponse(**cached_eval)
+    results = []
+    for entry in load_gold_standard_entries(normalized_domain):
+        parsed = await parse_from_html(
+            url=entry["url"],
+            domain=normalized_domain,
+            html_text=entry["html_text"],
+            title_override=entry.get("title", "")
+        )
+        results.append(evaluate_all(parsed.parsed_text, entry["gold_text"]))
 
-    domain_lock = FULL_GS_EVAL_LOCKS.setdefault(normalized_domain, asyncio.Lock())
-    async with domain_lock:
-        cached_eval = FULL_GS_EVAL_CACHE.get(normalized_domain)
-        if cached_eval is not None:
-            return EvaluationResponse(**cached_eval)
-
-        results = []
-        entries = load_gold_standard_entries(normalized_domain)
-        if not entries:
-            raise HTTPException(status_code=404, detail="Il Gold Standard del dominio e vuoto.")
-
-        parser_class = get_parser_class(normalized_domain)
-        seed_parser = parser_class(entries[0]["url"])
-
-        async with AsyncWebCrawler(config=seed_parser.browser_config) as crawler:
-            for entry in entries:
-                parsed = await parse_from_html(
-                    url=entry["url"],
-                    domain=normalized_domain,
-                    html_text=entry["html_text"],
-                    title_override=entry.get("title", ""),
-                    crawler=crawler,
-                )
-                results.append(evaluate_all(parsed.parsed_text, entry["gold_text"]))
-
-        aggregated = aggregate_evaluations(results)
-        aggregated_payload = aggregated.model_dump() if hasattr(aggregated, "model_dump") else aggregated.dict()
-        store_bounded_cache_entry(FULL_GS_EVAL_CACHE, normalized_domain, aggregated_payload, maxsize=4)
-        return EvaluationResponse(**aggregated_payload)
+    return aggregate_evaluations(results)
