@@ -3,7 +3,8 @@ Classe base astratta per tutti i parser del progetto.
 
 Ogni parser di dominio estende ParserBase e deve implementare:
   - set_crawler()   → configurazione specifica di Crawl4AI per il dominio
-  - clean_markdown() → pulizia del markdown prodotto da Crawl4AI
+  - clean_markdown() → si occupa di pulire il markdown grezzo prodotto da Crawl4AI, 
+                       rimuovendo boilerplate e rumore specifico del sito
 
 Il flusso principale è:
   get_data()      → scarica l'HTML dall'URL e delega a parse_html()
