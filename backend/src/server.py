@@ -1,4 +1,3 @@
-
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -229,7 +228,7 @@ def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
 
     raise HTTPException(
         status_code=404,
-        detail="L'URL richiesto non Ã¨ presente nel Gold Standard."
+        detail="L'URL richiesto non è presente nel Gold Standard."
     )
 
 
@@ -282,7 +281,7 @@ def aggregate_evaluations(results: list[dict[str, Any]]) -> EvaluationResponse:
     Usata da GET /full_gs_eval per restituire un valore aggregato per dominio.
     """
     if not results:
-        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio Ã¨ vuoto.")
+        raise HTTPException(status_code=404, detail="Il Gold Standard del dominio è vuoto.")
 
     token_level_eval = {
         metric: round(mean(r["token_level_eval"][metric] for r in results), 4)
@@ -330,7 +329,7 @@ async def parse_html_document(payload: ParseFromHtmlRequest) -> ParsedDocumentRe
     normalized_url, domain = normalize_url_and_domain(payload.url)
 
     if not payload.html_text.strip():
-        raise HTTPException(status_code=400, detail="Il campo html_text non puÃ² essere vuoto.")
+        raise HTTPException(status_code=400, detail="Il campo html_text non può essere vuoto.")
 
     return await parse_from_html(url=normalized_url, domain=domain, html_text=payload.html_text)
 

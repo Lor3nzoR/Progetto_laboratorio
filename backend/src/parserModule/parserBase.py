@@ -103,7 +103,7 @@ class ParserBase(ABC):
 
     async def get_raw_html(self) -> str:
         """Scarica l'HTML grezzo e lo salva in un file temporaneo unico per richiesta."""
-        async with AsyncWebCrawler() as crawler:
+        async with AsyncWebCrawler(config=self.browser_config) as crawler:
             result = await crawler.arun(url=self.url)
         # delete=False perché il file viene letto da get_data() dopo la chiusura del with
         with tempfile.NamedTemporaryFile(

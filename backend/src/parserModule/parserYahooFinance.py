@@ -13,6 +13,7 @@ Nota: la complessita principale di questo parser non e il cleanup finale,
 ma l'aggiramento affidabile del muro di consenso europeo.
 """
 
+import asyncio
 import re
 
 import requests
@@ -46,13 +47,27 @@ class ParserYahooFinance(ParserBase):
         "Connection": "keep-alive",
     }
 
+    def __init__(self, url: str):
+        super().__init__(url)
+        # Calcolato una sola volta e condiviso da get_data, parse_html e clean_markdown,
+        # così clean_markdown può rispettare la firma astratta (un solo argomento)
+        # senza perdere l'informazione sul tipo di pagina.
+        self._page_type: str = self._get_page_type()
+
     def set_crawler(self) -> CrawlerRunConfig:
         """Config di base vuota: la configurazione effettiva dipende dalla pagina."""
         return CrawlerRunConfig()
 
-    def set_browser(self) -> BrowserConfig:
-        """Browser con user-agent desktop reale per ridurre il rilevamento bot."""
-        return BrowserConfig(
+    def _build_browser_config(
+        self, storage_state: dict | None = None
+    ) -> BrowserConfig:
+        """
+        Unico punto in cui viene costruita la BrowserConfig per Yahoo Finance.
+        Il parametro opzionale storage_state viene usato da get_data() per
+        iniettare i cookie GDPR; se assente produce la config di base usata
+        da set_browser() e da parse_html().
+        """
+        kwargs: dict = dict(
             headless=True,
             browser_type="chromium",
             user_agent=self._REQUEST_HEADERS["User-Agent"],
@@ -71,6 +86,13 @@ class ParserYahooFinance(ParserBase):
                 "Upgrade-Insecure-Requests": "1",
             },
         )
+        if storage_state is not None:
+            kwargs["storage_state"] = storage_state
+        return BrowserConfig(**kwargs)
+
+    def set_browser(self) -> BrowserConfig:
+        """Browser con user-agent desktop reale per ridurre il rilevamento bot."""
+        return self._build_browser_config()
 
     def _get_page_type(self) -> str:
         """Classifica l'URL per scegliere selettori, attese e pulizia dedicate."""
@@ -291,35 +313,16 @@ class ParserYahooFinance(ParserBase):
         2. Crawl4AI carica la pagina con i cookie gia impostati.
         """
         try:
-            consent_cookies = self._get_consent_cookies()
+            consent_cookies = await asyncio.to_thread(self._get_consent_cookies)
         except RuntimeError as e:
             return {"error": str(e)}
 
-        page_type = self._get_page_type()
-        css_selector = self._build_css_selector(page_type)
-
-        browser_with_cookies = BrowserConfig(
-            headless=True,
-            browser_type="chromium",
-            user_agent=self._REQUEST_HEADERS["User-Agent"],
-            extra_args=[
-                "--disable-blink-features=AutomationControlled",
-                "--disable-dev-shm-usage",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--window-size=1920,1080",
-            ],
-            headers={
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept": self._REQUEST_HEADERS["Accept"],
-                "Accept-Encoding": "gzip, deflate, br",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-            },
-            storage_state={"cookies": consent_cookies, "origins": []},
+        css_selector = self._build_css_selector(self._page_type)
+        browser_with_cookies = self._build_browser_config(
+            storage_state={"cookies": consent_cookies, "origins": []}
         )
 
-        live_config = self._build_run_config(page_type, for_raw_html=False)
+        live_config = self._build_run_config(self._page_type, for_raw_html=False)
 
         async with AsyncWebCrawler(config=browser_with_cookies) as crawler:
             result = await crawler.arun(url=self.url, config=live_config)
@@ -342,7 +345,7 @@ class ParserYahooFinance(ParserBase):
             "domain": getattr(self, 'domain', 'finance.yahoo.com'),
             "title": article_title,
             "html_text": html,
-            "parsed_text": self.clean_markdown(raw_md, page_type),
+            "parsed_text": self.clean_markdown(raw_md),
         }
 
     async def parse_html(
@@ -355,8 +358,7 @@ class ParserYahooFinance(ParserBase):
         Parsing da HTML gia disponibile usando la stessa logica di selezione
         impiegata dal parsing live, ma senza la fase rete/GDPR.
         """
-        page_type = self._get_page_type()
-        html_config = self._build_run_config(page_type, for_raw_html=True)
+        html_config = self._build_run_config(self._page_type, for_raw_html=True)
 
         fallback_config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
@@ -385,7 +387,7 @@ class ParserYahooFinance(ParserBase):
                 "domain": getattr(self, 'domain', 'finance.yahoo.com'),
                 "title": page_title,
                 "html_text": html_text,
-                "parsed_text": self.clean_markdown(raw_md, page_type),
+                "parsed_text": self.clean_markdown(raw_md),
             }
 
         if crawler is None:
@@ -394,12 +396,16 @@ class ParserYahooFinance(ParserBase):
 
         return await run_parse(crawler)
 
-    def clean_markdown(self, text: str, page_type: str = "") -> str:
+    def clean_markdown(self, text: str) -> str:
         """
         Pulizia progressiva dell'output di Crawl4AI:
         1. Rimozione di sezioni intere di video, news correlate e widget.
         2. Filtro di righe con boilerplate commerciale o tecnico.
         3. Pulizia regex di link, byline, ticker e separatori residui.
+
+        Il tipo di pagina (quote, article, markets, generic) viene letto da
+        self._page_type, impostato nel costruttore, in modo da rispettare la
+        firma astratta di ParserBase.clean_markdown(self, markdown_output: str).
         """
         if not text:
             return ""
@@ -410,7 +416,7 @@ class ParserYahooFinance(ParserBase):
             "popular", "see also", "references",
         ]
 
-        if page_type == "quote":
+        if self._page_type == "quote":
             noise_sections += [
                 "related news",
                 "upcoming events",

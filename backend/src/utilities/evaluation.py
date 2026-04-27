@@ -188,7 +188,7 @@ def word_error_rate(parsed_text: str, gold_text: str) -> float:
     if not str_gold and not str_parsed:
         return 0.0
     if not str_gold:
-        return float(len(str_parsed.split()))
+        return 1.0
 
     wer_score: float = jiwer.wer(reference=str_gold, hypothesis=str_parsed)
     return round(wer_score, 4)
