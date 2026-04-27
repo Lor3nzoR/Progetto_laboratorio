@@ -102,7 +102,7 @@ class ParserWikipedia(ParserBase):
         text = clean_markdown_by_sections(text, noise_sections)
 
         # Indicatori editoriali ricorrenti che non appartengono al contenuto della voce.
-        noise_indicators = ["pagina Ã¨ semiprotetta", "voce in vetrina", "Questa voce Ã¨ stata selezionata", "modifica wikitesto"]
+        noise_indicators = ["pagina è semiprotetta", "voce in vetrina", "Questa voce è stata selezionata", "modifica wikitesto"]
         text = clean_markdown_noise(text, noise_indicators)
 
         # Le regex sono ordinate dal rumore piu strutturato alle rifiniture finali.

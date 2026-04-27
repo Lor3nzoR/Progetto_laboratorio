@@ -296,7 +296,6 @@ class ParserYahooFinance(ParserBase):
             return {"error": str(e)}
 
         page_type = self._get_page_type()
-        css_selector = self._build_css_selector(page_type)
 
         browser_with_cookies = BrowserConfig(
             headless=True,

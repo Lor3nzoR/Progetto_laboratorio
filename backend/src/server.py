@@ -107,7 +107,7 @@ app = FastAPI(
 def load_assigned_domains() -> list[str]:
     """
     Legge domains.json e restituisce la lista delle stringhe dei domini assegnati.
-    Il risultato Ã¨ memorizzato in cache: il file viene letto una sola volta.
+    Il risultato è memorizzato in cache: il file viene letto una sola volta.
     """
     if not DOMAINS_FILE.exists():
         return []
@@ -154,7 +154,7 @@ def canonicalize_domain(domain: str) -> str:
 def normalize_url_and_domain(url: str) -> tuple[str, str]:
     """
     Valida l'URL e verifica che appartenga a un dominio assegnato.
-    Solleva HTTPException 400 se l'URL non Ã¨ valido o il dominio non Ã¨ supportato.
+    Solleva HTTPException 400 se l'URL non è valido o il dominio non è supportato.
     """
     normalized_url = url.strip()
     parsed = urlparse(normalized_url)
@@ -191,7 +191,7 @@ def get_parser_class(domain: str) -> type[ParserBase]:
 def get_gs_file_path(domain: str) -> Path:
     """
     Converte il nome di un dominio nel percorso del file JSON del Gold Standard.
-    Es.: "it.wikipedia.org" â†’ gs_data/it_wikipedia_org_gs.json
+    Es.: "it.wikipedia.org" -> gs_data/it_wikipedia_org_gs.json
     """
     canonical_domain = canonicalize_domain(domain)
     return GS_DIRECTORY / f"{canonical_domain.replace('.', '_')}_gs.json"
@@ -201,7 +201,7 @@ def get_gs_file_path(domain: str) -> Path:
 def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
     """
     Carica tutte le entry del Gold Standard per il dominio indicato.
-    Il risultato Ã¨ memorizzato in cache (un entry per dominio, 4 domini in totale):
+    Il risultato è memorizzato in cache (un entry per dominio, 4 domini in totale):
     i file GS non cambiano durante il ciclo di vita del server.
     Solleva HTTPException 404 se il file non esiste.
     """
@@ -221,7 +221,7 @@ def load_gold_standard_entries(domain: str) -> list[dict[str, Any]]:
 def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
     """
     Cerca nel Gold Standard l'entry con l'URL esatto fornito.
-    Solleva HTTPException 404 se l'URL non Ã¨ presente nel GS.
+    Solleva HTTPException 404 se l'URL non è presente nel GS.
     """
     for entry in load_gold_standard_entries(domain):
         if entry.get("url") == url:
@@ -229,14 +229,14 @@ def find_gold_standard_entry(url: str, domain: str) -> dict[str, Any]:
 
     raise HTTPException(
         status_code=404,
-        detail="L'URL richiesto non Ã¨ presente nel Gold Standard."
+        detail="L'URL richiesto non è presente nel Gold Standard."
     )
 
 
 async def parse_from_url(url: str, domain: str) -> ParsedDocumentResponse:
     """
     Scarica la pagina dall'URL e la parsifica con il parser del dominio.
-    Solleva HTTPException 502 se la pagina non Ã¨ raggiungibile o il parsing fallisce.
+    Solleva HTTPException 502 se la pagina non è raggiungibile o il parsing fallisce.
     """
     parser = get_parser_class(domain)(url)
 
@@ -259,7 +259,7 @@ async def parse_from_html(
     title_override: str = "",
 ) -> ParsedDocumentResponse:
     """
-    Parsifica una stringa HTML giÃ  disponibile (usato da POST /parse e full_gs_eval).
+    Parsifica una stringa HTML già disponibile (usato da POST /parse e full_gs_eval).
     Il parametro title_override permette di passare il titolo dal Gold Standard.
     """
     parser = get_parser_class(domain)(url)
@@ -278,7 +278,7 @@ async def parse_from_html(
 
 def aggregate_evaluations(results: list[dict[str, Any]]) -> EvaluationResponse:
     """
-    Calcola la media aritmetica di tutte le metriche su piÃ¹ documenti.
+    Calcola la media aritmetica di tutte le metriche su più documenti.
     Usata da GET /full_gs_eval per restituire un valore aggregato per dominio.
     """
     if not results:
